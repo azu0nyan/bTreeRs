@@ -5,6 +5,7 @@
 //! * [`Repeat`] — re-run a child up to N successful times.
 //! * [`Retry`] — re-run a failing child up to N times.
 
+use crate::debug::{record, tick_child};
 use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
 /// Inverts a child's finished result: success becomes failure and vice versa.
@@ -23,26 +24,18 @@ impl<D> Invert<D> {
 }
 
 impl<D> BehaviorNode<D> for Invert<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
-        match self.child.tick(data) {
-            Status::Running => Status::Running,
-            Status::Success => Status::Failure,
-            Status::Failure => Status::Success,
-        }
-    }
-
-    fn halt(&mut self) {
-        self.child.halt();
-    }
-
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        let child = self.child.tick_debug(data);
-        let status = match child.status {
+    fn tick(&mut self, data: &mut D, mut dbg: Option<&mut DebugNode>) -> Status {
+        let status = match tick_child(&mut *self.child, data, &mut dbg) {
             Status::Running => Status::Running,
             Status::Success => Status::Failure,
             Status::Failure => Status::Success,
         };
-        DebugNode::new(self.node_info(), status, vec![child])
+        record(dbg, status, || self.node_info());
+        status
+    }
+
+    fn halt(&mut self) {
+        self.child.halt();
     }
 }
 
@@ -61,24 +54,17 @@ impl<D> ForceSuccess<D> {
 }
 
 impl<D> BehaviorNode<D> for ForceSuccess<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
-        match self.child.tick(data) {
+    fn tick(&mut self, data: &mut D, mut dbg: Option<&mut DebugNode>) -> Status {
+        let status = match tick_child(&mut *self.child, data, &mut dbg) {
             Status::Running => Status::Running,
             Status::Success | Status::Failure => Status::Success,
-        }
+        };
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn halt(&mut self) {
         self.child.halt();
-    }
-
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        let child = self.child.tick_debug(data);
-        let status = match child.status {
-            Status::Running => Status::Running,
-            Status::Success | Status::Failure => Status::Success,
-        };
-        DebugNode::new(self.node_info(), status, vec![child])
     }
 }
 
@@ -97,24 +83,17 @@ impl<D> ForceFailure<D> {
 }
 
 impl<D> BehaviorNode<D> for ForceFailure<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
-        match self.child.tick(data) {
+    fn tick(&mut self, data: &mut D, mut dbg: Option<&mut DebugNode>) -> Status {
+        let status = match tick_child(&mut *self.child, data, &mut dbg) {
             Status::Running => Status::Running,
             Status::Success | Status::Failure => Status::Failure,
-        }
+        };
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn halt(&mut self) {
         self.child.halt();
-    }
-
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        let child = self.child.tick_debug(data);
-        let status = match child.status {
-            Status::Running => Status::Running,
-            Status::Success | Status::Failure => Status::Failure,
-        };
-        DebugNode::new(self.node_info(), status, vec![child])
     }
 }
 
@@ -141,21 +120,23 @@ impl<D> Repeat<D> {
 }
 
 impl<D> BehaviorNode<D> for Repeat<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
-        loop {
+    fn tick(&mut self, data: &mut D, mut dbg: Option<&mut DebugNode>) -> Status {
+        let status = loop {
             if self.repeat >= self.count {
                 self.repeat = 0;
-                return Status::Success;
+                break Status::Success;
             }
-            match self.child.tick(data) {
+            match tick_child(&mut *self.child, data, &mut dbg) {
                 Status::Success => self.repeat += 1,
                 Status::Failure => {
                     self.repeat = 0;
-                    return Status::Failure;
+                    break Status::Failure;
                 }
-                Status::Running => return Status::Running,
+                Status::Running => break Status::Running,
             }
-        }
+        };
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn halt(&mut self) {
@@ -165,28 +146,6 @@ impl<D> BehaviorNode<D> for Repeat<D> {
 
     fn node_info(&self) -> String {
         format!("Repeating {} / {}", self.repeat, self.count)
-    }
-
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        let mut traces = Vec::new();
-        let status = loop {
-            if self.repeat >= self.count {
-                self.repeat = 0;
-                break Status::Success;
-            }
-            let child = self.child.tick_debug(data);
-            let cs = child.status;
-            traces.push(child);
-            match cs {
-                Status::Success => self.repeat += 1,
-                Status::Failure => {
-                    self.repeat = 0;
-                    break Status::Failure;
-                }
-                Status::Running => break Status::Running,
-            }
-        };
-        DebugNode::new(self.node_info(), status, traces)
     }
 }
 
@@ -213,21 +172,23 @@ impl<D> Retry<D> {
 }
 
 impl<D> BehaviorNode<D> for Retry<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
-        loop {
+    fn tick(&mut self, data: &mut D, mut dbg: Option<&mut DebugNode>) -> Status {
+        let status = loop {
             if self.retry >= self.count {
                 self.retry = 0;
-                return Status::Failure;
+                break Status::Failure;
             }
-            match self.child.tick(data) {
+            match tick_child(&mut *self.child, data, &mut dbg) {
                 Status::Failure => self.retry += 1,
                 Status::Success => {
                     self.retry = 0;
-                    return Status::Success;
+                    break Status::Success;
                 }
-                Status::Running => return Status::Running,
+                Status::Running => break Status::Running,
             }
-        }
+        };
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn halt(&mut self) {
@@ -237,27 +198,5 @@ impl<D> BehaviorNode<D> for Retry<D> {
 
     fn node_info(&self) -> String {
         format!("Retrying {} / {}", self.retry, self.count)
-    }
-
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        let mut traces = Vec::new();
-        let status = loop {
-            if self.retry >= self.count {
-                self.retry = 0;
-                break Status::Failure;
-            }
-            let child = self.child.tick_debug(data);
-            let cs = child.status;
-            traces.push(child);
-            match cs {
-                Status::Failure => self.retry += 1,
-                Status::Success => {
-                    self.retry = 0;
-                    break Status::Success;
-                }
-                Status::Running => break Status::Running,
-            }
-        };
-        DebugNode::new(self.node_info(), status, traces)
     }
 }

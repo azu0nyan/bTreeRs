@@ -4,7 +4,8 @@
 //! * [`Action`] — runs a closure that returns a [`Status`] directly.
 //! * [`AlwaysSuccess`], [`AlwaysFailure`], [`AlwaysRunning`] — constant leaves.
 
-use crate::{BehaviorNode, Status};
+use crate::debug::record;
+use crate::{BehaviorNode, DebugNode, Status};
 
 /// A leaf that succeeds when its predicate is `true` and fails otherwise.
 ///
@@ -17,7 +18,7 @@ use crate::{BehaviorNode, Status};
 ///
 /// let mut hungry = Predicate::labeled("hungry", |hp: &mut i32| *hp < 50);
 /// let mut hp = 30;
-/// assert_eq!(hungry.tick(&mut hp), Status::Success);
+/// assert_eq!(hungry.tick(&mut hp, None), Status::Success);
 /// ```
 pub struct Predicate<D> {
     predicate: Box<dyn FnMut(&mut D) -> bool>,
@@ -46,13 +47,15 @@ impl<D> Predicate<D> {
 }
 
 impl<D> BehaviorNode<D> for Predicate<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
+    fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
         self.last_result = (self.predicate)(data);
-        if self.last_result {
+        let status = if self.last_result {
             Status::Success
         } else {
             Status::Failure
-        }
+        };
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn node_info(&self) -> String {
@@ -78,7 +81,7 @@ impl<D> BehaviorNode<D> for Predicate<D> {
 ///     if *counter >= 3 { Status::Success } else { Status::Running }
 /// });
 /// let mut c = 0;
-/// assert_eq!(step.tick(&mut c), Status::Running);
+/// assert_eq!(step.tick(&mut c, None), Status::Running);
 /// ```
 pub struct Action<D> {
     action: Box<dyn FnMut(&mut D) -> Status>,
@@ -104,8 +107,10 @@ impl<D> Action<D> {
 }
 
 impl<D> BehaviorNode<D> for Action<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
-        (self.action)(data)
+    fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
+        let status = (self.action)(data);
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn node_info(&self) -> String {
@@ -120,7 +125,8 @@ impl<D> BehaviorNode<D> for Action<D> {
 pub struct AlwaysSuccess;
 
 impl<D> BehaviorNode<D> for AlwaysSuccess {
-    fn tick(&mut self, _data: &mut D) -> Status {
+    fn tick(&mut self, _data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
+        record(dbg, Status::Success, || "AlwaysSuccess".to_string());
         Status::Success
     }
 }
@@ -129,7 +135,8 @@ impl<D> BehaviorNode<D> for AlwaysSuccess {
 pub struct AlwaysFailure;
 
 impl<D> BehaviorNode<D> for AlwaysFailure {
-    fn tick(&mut self, _data: &mut D) -> Status {
+    fn tick(&mut self, _data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
+        record(dbg, Status::Failure, || "AlwaysFailure".to_string());
         Status::Failure
     }
 }
@@ -138,7 +145,8 @@ impl<D> BehaviorNode<D> for AlwaysFailure {
 pub struct AlwaysRunning;
 
 impl<D> BehaviorNode<D> for AlwaysRunning {
-    fn tick(&mut self, _data: &mut D) -> Status {
+    fn tick(&mut self, _data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
+        record(dbg, Status::Running, || "AlwaysRunning".to_string());
         Status::Running
     }
 }

@@ -18,9 +18,9 @@ fn tagged(tag: &'static str, status: Status) -> Action<Ctx> {
 fn predicate_succeeds_and_fails() {
     let mut p = Predicate::new(|v: &mut i32| *v > 0);
     let mut v = 5;
-    assert_eq!(p.tick(&mut v), Status::Success);
+    assert_eq!(p.tick(&mut v, None), Status::Success);
     v = -1;
-    assert_eq!(p.tick(&mut v), Status::Failure);
+    assert_eq!(p.tick(&mut v, None), Status::Failure);
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn sequence_runs_in_order_and_stops_on_failure() {
         tagged("b", Status::Failure),
         tagged("c", Status::Success),
     ]);
-    assert_eq!(seq.tick(&mut ctx), Status::Failure);
+    assert_eq!(seq.tick(&mut ctx, None), Status::Failure);
     assert_eq!(ctx.log, vec!["a", "b"]); // "c" never runs
 }
 
@@ -50,9 +50,9 @@ fn sequence_keeps_progress_across_ticks() {
         tagged("c", Status::Success),
     ]);
 
-    assert_eq!(seq.tick(&mut ctx), Status::Running);
+    assert_eq!(seq.tick(&mut ctx, None), Status::Running);
     // Next tick must resume at "b", not re-run "a".
-    assert_eq!(seq.tick(&mut ctx), Status::Success);
+    assert_eq!(seq.tick(&mut ctx, None), Status::Success);
     assert_eq!(ctx.log, vec!["a", "b", "b", "c"]);
 }
 
@@ -63,8 +63,8 @@ fn reactive_sequence_restarts_every_tick() {
         tagged("a", Status::Success),
         tagged("b", Status::Running),
     ]);
-    assert_eq!(seq.tick(&mut ctx), Status::Running);
-    assert_eq!(seq.tick(&mut ctx), Status::Running);
+    assert_eq!(seq.tick(&mut ctx, None), Status::Running);
+    assert_eq!(seq.tick(&mut ctx, None), Status::Running);
     // "a" is re-evaluated on every tick.
     assert_eq!(ctx.log, vec!["a", "b", "a", "b"]);
 }
@@ -77,16 +77,16 @@ fn fallback_returns_first_success() {
         tagged("b", Status::Success),
         tagged("c", Status::Success),
     ]);
-    assert_eq!(fb.tick(&mut ctx), Status::Success);
+    assert_eq!(fb.tick(&mut ctx, None), Status::Success);
     assert_eq!(ctx.log, vec!["a", "b"]);
 }
 
 #[test]
 fn invert_swaps_result() {
     let mut n = Invert::new(AlwaysSuccess);
-    assert_eq!(n.tick(&mut ()), Status::Failure);
+    assert_eq!(n.tick(&mut (), None), Status::Failure);
     let mut n = Invert::new(AlwaysFailure);
-    assert_eq!(n.tick(&mut ()), Status::Success);
+    assert_eq!(n.tick(&mut (), None), Status::Success);
 }
 
 #[test]
@@ -99,10 +99,10 @@ fn repeat_runs_n_times() {
         }),
         3,
     );
-    assert_eq!(r.tick(&mut count), Status::Success);
+    assert_eq!(r.tick(&mut count, None), Status::Success);
     assert_eq!(count, 3);
     // After completing, it resets and can run again.
-    assert_eq!(r.tick(&mut count), Status::Success);
+    assert_eq!(r.tick(&mut count, None), Status::Success);
     assert_eq!(count, 6);
 }
 
@@ -116,13 +116,13 @@ fn retry_until_success() {
         }),
         5,
     );
-    assert_eq!(r.tick(&mut ()), Status::Success);
+    assert_eq!(r.tick(&mut (), None), Status::Success);
 }
 
 #[test]
 fn retry_exhausts() {
     let mut r = Retry::new(AlwaysFailure, 2);
-    assert_eq!(r.tick(&mut ()), Status::Failure);
+    assert_eq!(r.tick(&mut (), None), Status::Failure);
 }
 
 #[test]
@@ -142,8 +142,8 @@ fn if_then_else_latches() {
         }),
         AlwaysFailure,
     );
-    assert_eq!(node.tick(&mut ()), Status::Running);
-    assert_eq!(node.tick(&mut ()), Status::Success); // stayed on `then`
+    assert_eq!(node.tick(&mut (), None), Status::Running);
+    assert_eq!(node.tick(&mut (), None), Status::Success); // stayed on `then`
 }
 
 #[test]
@@ -155,9 +155,9 @@ fn reactive_if_then_else_switches() {
         Action::new(|_: &mut bool| Status::Running),
         Action::new(|_: &mut bool| Status::Success),
     );
-    assert_eq!(node.tick(&mut cond), Status::Running); // then branch
+    assert_eq!(node.tick(&mut cond, None), Status::Running); // then branch
     cond = false;
-    assert_eq!(node.tick(&mut cond), Status::Success); // switched to else
+    assert_eq!(node.tick(&mut cond, None), Status::Success); // switched to else
 }
 
 #[test]
@@ -171,9 +171,10 @@ fn tick_debug_builds_trace_tree() {
         ]),
     ]);
 
-    let trace = tree.tick_debug(&mut ctx);
+    let (status, trace) = tree.tick_traced(&mut ctx);
 
     // Root reports the same status as a plain tick would.
+    assert_eq!(status, Status::Running);
     assert_eq!(trace.status, Status::Running);
     assert!(trace.name.starts_with("Sequence"));
 
@@ -199,9 +200,23 @@ fn tick_debug_builds_trace_tree() {
 }
 
 #[test]
-fn tick_and_tick_debug_agree() {
+fn explicit_debug_slot_is_filled() {
+    // The debug object can also be passed in directly via `tick`.
+    let mut tree = Invert::new(AlwaysSuccess);
+    let mut slot = DebugNode::empty();
+    let status = tree.tick(&mut (), Some(&mut slot));
+    assert_eq!(status, Status::Failure);
+    assert_eq!(slot.status, Status::Failure);
+    assert_eq!(slot.name, "Invert");
+    assert_eq!(slot.children.len(), 1);
+    assert_eq!(slot.children[0].name, "AlwaysSuccess");
+    assert_eq!(slot.children[0].status, Status::Success);
+}
+
+#[test]
+fn tick_with_and_without_debug_agree() {
     // Two identical trees ticked in lockstep must return the same status,
-    // proving the debug path mirrors the fast path.
+    // proving the debug path mirrors the non-debug path.
     let build = || {
         ReactiveSequence::new(nodes![
             Predicate::new(|v: &mut i32| *v > 0),
@@ -216,8 +231,8 @@ fn tick_and_tick_debug_agree() {
     let mut va = 3;
     let mut vb = 3;
     for _ in 0..5 {
-        let sa = a.tick(&mut va);
-        let sb = b.tick_debug(&mut vb).status;
+        let sa = a.tick(&mut va, None);
+        let (sb, _trace) = b.tick_traced(&mut vb);
         assert_eq!(sa, sb);
         assert_eq!(va, vb);
     }
@@ -230,7 +245,7 @@ fn producer_builds_child_lazily() {
         *c += 1;
         AlwaysSuccess.boxed()
     });
-    assert_eq!(p.tick(&mut produced), Status::Success);
-    assert_eq!(p.tick(&mut produced), Status::Success);
+    assert_eq!(p.tick(&mut produced, None), Status::Success);
+    assert_eq!(p.tick(&mut produced, None), Status::Success);
     assert_eq!(produced, 2); // a fresh child is built for each run
 }

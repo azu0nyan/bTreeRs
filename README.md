@@ -14,8 +14,9 @@ Every node implements one trait:
 
 ```rust
 pub trait BehaviorNode<D> {
-    fn tick(&mut self, data: &mut D) -> Status;     // required
-    fn halt(&mut self) {}                            // cancel a running node
+    // required; `dbg` is an optional trace slot (pass None for the fast path)
+    fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status;
+    fn halt(&mut self) {}                             // cancel a running node
     fn node_info(&self) -> String { /* type name */ } // for debug traces
 }
 ```
@@ -63,16 +64,20 @@ let mut tree = ReactiveIfThenElse::labeled(
 
 let mut bot = Bot { energy: 1 };
 loop {
-    if tree.tick(&mut bot).is_done() { break; }
+    if tree.tick(&mut bot, None).is_done() { break; }
 }
 ```
 
 ## Debugging
 
-Run a tree the normal way with `tick` — that path never allocates and has no
-tracing overhead. When you need to understand *why* a tree did what it did, call
-`tick_debug` instead. It does exactly the same work but also returns a
-`DebugNode` tree of every node processed that tick and the `Status` it returned:
+Tracing rides along on the single `tick` method through its
+`Option<&mut DebugNode>` argument:
+
+* Pass `None` for the normal path — nothing is recorded, no allocation, no
+  formatting. Leave this in your hot loop.
+* Pass `Some(&mut slot)` and every node fills in its name, status, and the
+  slots of the children it processed, building a tree. The `tick_traced`
+  convenience does this for you and hands back the finished `DebugNode`:
 
 ```rust
 use btree::prelude::*;
@@ -82,19 +87,18 @@ let mut tree = Sequence::new(nodes![
     Action::labeled("go", |_: &mut ()| Status::Running),
 ]);
 
-let trace = tree.tick_debug(&mut ());
+let (status, trace) = tree.tick_traced(&mut ());
 print!("{trace}");
 // Sequence 1 / 2 [Running]
 //   Predicate: ready : true [Success]
 //   Action: go [Running]
 ```
 
-Tracing is opt-in and pay-as-you-go, so you can leave `tick` in your hot loop
-and only reach for `tick_debug` when inspecting behavior. `DebugNode` also
-derives `Debug`/`Clone` and offers `.iter()` for a depth-first walk, so you can
-assert on traces in tests or forward them to an in-engine inspector. Custom leaf
-nodes get a sensible trace for free from the default `tick_debug`; custom
-composites override `tick_debug` to record their children.
+`DebugNode` derives `Debug`/`Clone` and offers `.iter()` for a depth-first
+walk, so you can assert on traces in tests or forward them to an in-engine
+inspector. When writing your own nodes, fill the slot with the `record` helper
+(leaves) and `tick_child` helper (composites) — both no-op when the slot is
+`None`, so tracing stays free unless you ask for it.
 
 ## Using it from Godot (gdext)
 
@@ -108,7 +112,7 @@ struct Enemy {
 }
 
 // in _process:
-self.tree.tick(&mut self.blackboard);
+self.tree.tick(&mut self.blackboard, None);
 ```
 
 The library never references Godot, so the `godot` crate only ever sees your own

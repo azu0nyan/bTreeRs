@@ -1,5 +1,6 @@
 //! The [`Producer`] node, which builds its child lazily from the context.
 
+use crate::debug::{record, tick_child};
 use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
 /// A boxed factory closure that builds a child subtree from the context.
@@ -54,14 +55,15 @@ impl<D> Producer<D> {
 }
 
 impl<D> BehaviorNode<D> for Producer<D> {
-    fn tick(&mut self, data: &mut D) -> Status {
+    fn tick(&mut self, data: &mut D, mut dbg: Option<&mut DebugNode>) -> Status {
         if self.running_node.is_none() {
             let node = (self.produce)(data);
             self.running_node = Some(node);
         }
-        // Unwrap is safe: we just ensured `running_node` is `Some`.
-        let status = self.running_node.as_mut().unwrap().tick(data);
-        match status {
+        // `as_deref_mut` reborrows the boxed child as `&mut dyn BehaviorNode`
+        // for the duration of the call only, so we can clear `running_node`
+        // in the match arms below.
+        let status = match tick_child(self.running_node.as_deref_mut().unwrap(), data, &mut dbg) {
             Status::Success => {
                 self.running_node = None;
                 Status::Success
@@ -71,7 +73,9 @@ impl<D> BehaviorNode<D> for Producer<D> {
                 Status::Failure
             }
             Status::Running => Status::Running,
-        }
+        };
+        record(dbg, status, || self.node_info());
+        status
     }
 
     fn halt(&mut self) {
@@ -91,26 +95,5 @@ impl<D> BehaviorNode<D> for Producer<D> {
             Some(l) => format!("Producer : {l} : {state}"),
             None => format!("Producer : {state}"),
         }
-    }
-
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        if self.running_node.is_none() {
-            let node = (self.produce)(data);
-            self.running_node = Some(node);
-        }
-        // Unwrap is safe: we just ensured `running_node` is `Some`.
-        let child = self.running_node.as_mut().unwrap().tick_debug(data);
-        let status = match child.status {
-            Status::Success => {
-                self.running_node = None;
-                Status::Success
-            }
-            Status::Failure => {
-                self.running_node = None;
-                Status::Failure
-            }
-            Status::Running => Status::Running,
-        };
-        DebugNode::new(self.node_info(), status, vec![child])
     }
 }

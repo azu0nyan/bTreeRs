@@ -19,12 +19,27 @@ pub type BoxNode<D> = Box<dyn BehaviorNode<D>>;
 /// Implement this trait to add your own custom leaves or composites. The only
 /// required method is [`tick`](BehaviorNode::tick); [`halt`](BehaviorNode::halt)
 /// and [`node_info`](BehaviorNode::node_info) have sensible defaults.
+///
+/// ## Tracing
+///
+/// `tick` takes an optional debug slot, `Option<&mut DebugNode>`. Pass `None`
+/// for the normal zero-overhead path; pass `Some(&mut slot)` to have the node
+/// record a [`DebugNode`] trace of itself and the children it processes. Custom
+/// implementations fill the slot with the [`record`](crate::record) helper
+/// (leaves) and [`tick_child`](crate::tick_child) helper (composites), both of
+/// which no-op when the slot is `None`.
 pub trait BehaviorNode<D> {
     /// Advance this node by one tick, returning its [`Status`].
     ///
     /// A node that returns [`Status::Running`] expects to be ticked again on a
     /// later frame and should preserve whatever state it needs between calls.
-    fn tick(&mut self, data: &mut D) -> Status;
+    ///
+    /// `dbg` is an optional trace slot. When it is `Some`, the node must fill it
+    /// with its own name and status (via [`record`](crate::record)) and, for a
+    /// composite, the traces of every child it ticks (via
+    /// [`tick_child`](crate::tick_child)). When it is `None`, no tracing work is
+    /// done.
+    fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status;
 
     /// Abort a node that is currently [`Status::Running`].
     ///
@@ -41,21 +56,16 @@ pub trait BehaviorNode<D> {
         short_type_name::<Self>()
     }
 
-    /// Tick this node **and** record a [`DebugNode`] trace of everything that
-    /// was processed.
+    /// Tick this node with tracing enabled, returning both the [`Status`] and a
+    /// fully populated [`DebugNode`] trace.
     ///
-    /// This does the same work as [`tick`](BehaviorNode::tick) but additionally
-    /// returns a tree of the processed node names and their statuses, which is
-    /// invaluable for debugging why a tree behaved the way it did. It is fully
-    /// optional: the plain [`tick`](BehaviorNode::tick) path never builds a
-    /// trace, so tracing costs nothing unless you ask for it.
-    ///
-    /// The default implementation is correct for leaf nodes (it ticks and
-    /// returns a childless trace). Composite nodes override it to also trace
-    /// the children they processed.
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        let status = self.tick(data);
-        DebugNode::leaf(self.node_info(), status)
+    /// This is just a convenience wrapper around `tick(data, Some(..))`; the
+    /// plain [`tick`](BehaviorNode::tick) with `None` remains the zero-overhead
+    /// path for production use.
+    fn tick_traced(&mut self, data: &mut D) -> (Status, DebugNode) {
+        let mut root = DebugNode::empty();
+        let status = self.tick(data, Some(&mut root));
+        (status, root)
     }
 }
 
@@ -76,8 +86,8 @@ pub(crate) fn short_type_name<T: ?Sized>() -> String {
 /// `impl BehaviorNode<D>` is expected.
 impl<D, N: BehaviorNode<D> + ?Sized> BehaviorNode<D> for Box<N> {
     #[inline]
-    fn tick(&mut self, data: &mut D) -> Status {
-        (**self).tick(data)
+    fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
+        (**self).tick(data, dbg)
     }
 
     #[inline]
@@ -91,8 +101,8 @@ impl<D, N: BehaviorNode<D> + ?Sized> BehaviorNode<D> for Box<N> {
     }
 
     #[inline]
-    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
-        (**self).tick_debug(data)
+    fn tick_traced(&mut self, data: &mut D) -> (Status, DebugNode) {
+        (**self).tick_traced(data)
     }
 }
 

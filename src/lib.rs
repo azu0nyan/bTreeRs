@@ -34,17 +34,19 @@
 //! );
 //!
 //! let mut bot = Bot { energy: 1, ticks: 0 };
-//! assert_eq!(tree.tick(&mut bot), Status::Success); // works, energy -> 0
-//! assert_eq!(tree.tick(&mut bot), Status::Success); // rests, energy -> 1
+//! assert_eq!(tree.tick(&mut bot, None), Status::Success); // works, energy -> 0
+//! assert_eq!(tree.tick(&mut bot, None), Status::Success); // rests, energy -> 1
 //! assert_eq!(bot.ticks, 1);
 //! ```
 //!
 //! ## Debugging
 //!
-//! [`tick`](BehaviorNode::tick) is the zero-overhead production path. For
-//! introspection, call [`tick_debug`](BehaviorNode::tick_debug) instead: it does
-//! the same work but returns a [`DebugNode`] tree of every processed node and
-//! its status, which `Display`s as an indented tree.
+//! Tracing is threaded through the single [`tick`](BehaviorNode::tick) method
+//! via its `Option<&mut DebugNode>` argument. Pass `None` for the zero-overhead
+//! production path; pass `Some(&mut slot)` (or use the
+//! [`tick_traced`](BehaviorNode::tick_traced) convenience) to have each node
+//! fill in a [`DebugNode`] tree of itself and the children it processed. The
+//! tree `Display`s as an indented listing.
 //!
 //! ```
 //! use btree::prelude::*;
@@ -54,10 +56,10 @@
 //!     Action::labeled("go", |_: &mut ()| Status::Running),
 //! ]);
 //!
-//! let trace = tree.tick_debug(&mut ());
-//! assert_eq!(trace.status, Status::Running);
+//! let (status, trace) = tree.tick_traced(&mut ());
+//! assert_eq!(status, Status::Running);
 //! assert_eq!(trace.children.len(), 2);
-//! // Renders as:
+//! // `trace` renders as:
 //! //   Sequence 1 / 2 [Running]
 //! //     Predicate: ready : true [Success]
 //! //     Action: go [Running]
@@ -77,7 +79,7 @@ mod sequence;
 mod status;
 
 pub use branch::{IfThenElse, ReactiveIfThenElse};
-pub use debug::DebugNode;
+pub use debug::{record, tick_child, DebugNode};
 pub use decorator::{ForceFailure, ForceSuccess, Invert, Repeat, Retry};
 pub use leaf::{Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, Predicate};
 pub use node::{BehaviorNode, BoxNode, IntoBoxNode};
@@ -99,7 +101,7 @@ pub use status::Status;
 ///     AlwaysSuccess,
 ///     AlwaysSuccess,
 /// ]);
-/// assert_eq!(seq.tick(&mut ()), Status::Success);
+/// assert_eq!(seq.tick(&mut (), None), Status::Success);
 /// ```
 #[macro_export]
 macro_rules! nodes {
@@ -110,7 +112,7 @@ macro_rules! nodes {
 
 /// Re-exports of everything you typically need to build and tick a tree.
 pub mod prelude {
-    pub use crate::debug::DebugNode;
+    pub use crate::debug::{record, tick_child, DebugNode};
     pub use crate::node::{BehaviorNode, BoxNode, IntoBoxNode};
     pub use crate::status::Status;
 

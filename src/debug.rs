@@ -1,24 +1,30 @@
 //! Optional debug tracing for behavior trees.
 //!
-//! Calling [`BehaviorNode::tick`](crate::BehaviorNode::tick) is the normal,
-//! zero-overhead way to run a tree. When you want to *see* what happened,
-//! call [`BehaviorNode::tick_debug`](crate::BehaviorNode::tick_debug) instead:
-//! it performs exactly the same work but also returns a [`DebugNode`] tree
-//! describing every node that was processed this tick and the [`Status`] it
-//! returned.
+//! Tracing is threaded through the *single* [`tick`](crate::BehaviorNode::tick)
+//! method via an `Option<&mut DebugNode>` argument:
 //!
-//! Tracing is therefore fully opt-in and pay-as-you-go: the plain `tick` path
-//! never allocates a [`DebugNode`], so production ticking is unaffected.
+//! * Pass `None` (the normal, production path) and nothing is recorded — no
+//!   allocation, no string formatting, essentially free.
+//! * Pass `Some(&mut slot)` and every node that runs fills its slot with its
+//!   name, status, and the slots of the children it processed, building a tree.
+//!
+//! The convenience [`tick_traced`](crate::BehaviorNode::tick_traced) wraps the
+//! `Some` case for you and hands back the finished [`DebugNode`].
+//!
+//! Custom node implementations record into the optional slot with the
+//! [`record`] helper (leaves) and [`tick_child`] helper (composites), which
+//! both no-op when tracing is disabled.
 
-use crate::Status;
+use crate::{BehaviorNode, Status};
 use std::fmt;
 
-/// A node in a debug trace: the snapshot of one ticked behavior node.
+/// A node in a debug trace: a snapshot of one ticked behavior node.
 ///
-/// Returned by [`BehaviorNode::tick_debug`](crate::BehaviorNode::tick_debug).
-/// `children` holds the traces of the children that were actually processed
-/// during this tick, in the order they were ticked (a node that was skipped or
-/// only halted does not appear).
+/// This is the "debug object" passed into
+/// [`tick`](crate::BehaviorNode::tick). When tracing is enabled a node fills in
+/// its [`name`](DebugNode::name) and [`status`](DebugNode::status) and pushes a
+/// child `DebugNode` for each child it processed this tick, in tick order. A
+/// child that was skipped or only halted does not appear.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DebugNode {
     /// Human-readable description of the node (its
@@ -31,28 +37,21 @@ pub struct DebugNode {
 }
 
 impl DebugNode {
-    /// Build a childless trace node (for leaves).
-    pub fn leaf(name: impl Into<String>, status: Status) -> Self {
+    /// An empty slot to be handed to [`tick`](crate::BehaviorNode::tick) and
+    /// filled by the node.
+    ///
+    /// The `status` is a placeholder ([`Status::Failure`]) that every node
+    /// overwrites the instant it records into the slot.
+    pub fn empty() -> Self {
         Self {
-            name: name.into(),
-            status,
+            name: String::new(),
+            status: Status::Failure,
             children: Vec::new(),
-        }
-    }
-
-    /// Build a trace node with children.
-    pub fn new(name: impl Into<String>, status: Status, children: Vec<DebugNode>) -> Self {
-        Self {
-            name: name.into(),
-            status,
-            children,
         }
     }
 
     /// Iterate over this node and all of its descendants, depth-first.
     pub fn iter(&self) -> impl Iterator<Item = &DebugNode> {
-        // A small explicit stack keeps this allocation-light and avoids
-        // recursion in the iterator.
         let mut stack = vec![self];
         std::iter::from_fn(move || {
             let node = stack.pop()?;
@@ -83,5 +82,54 @@ impl DebugNode {
 impl fmt::Display for DebugNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.fmt_indented(f, 0)
+    }
+}
+
+/// Record a node's own `name` and `status` into its optional debug slot.
+///
+/// Used by leaf nodes (and at the end of composite ticks) when implementing
+/// [`BehaviorNode::tick`]. The `name` closure is only evaluated when a slot is
+/// actually present, so the non-debug path never pays for formatting.
+///
+/// ```
+/// use btree::prelude::*;
+///
+/// struct MyLeaf;
+/// impl BehaviorNode<()> for MyLeaf {
+///     fn tick(&mut self, _data: &mut (), dbg: Option<&mut DebugNode>) -> Status {
+///         let status = Status::Success;
+///         record(dbg, status, || "MyLeaf".to_string());
+///         status
+///     }
+/// }
+/// ```
+#[inline]
+pub fn record(dbg: Option<&mut DebugNode>, status: Status, name: impl FnOnce() -> String) {
+    if let Some(slot) = dbg {
+        slot.name = name();
+        slot.status = status;
+    }
+}
+
+/// Tick a child, recording its trace into `parent` when tracing is enabled.
+///
+/// Used by composite nodes when implementing [`BehaviorNode::tick`]: pass the
+/// parent's own `Option<&mut DebugNode>` (by `&mut`) and this allocates a child
+/// slot, ticks the child into it, and pushes it onto `parent.children`. When
+/// `parent` is `None` it simply forwards `None` to the child — no allocation.
+#[inline]
+pub fn tick_child<D>(
+    child: &mut dyn BehaviorNode<D>,
+    data: &mut D,
+    parent: &mut Option<&mut DebugNode>,
+) -> Status {
+    match parent.as_deref_mut() {
+        Some(slot) => {
+            let mut sub = DebugNode::empty();
+            let status = child.tick(data, Some(&mut sub));
+            slot.children.push(sub);
+            status
+        }
+        None => child.tick(data, None),
     }
 }
