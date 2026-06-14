@@ -5,7 +5,7 @@
 //! * [`ReactiveIfThenElse`] — re-checks the predicate every tick and switches
 //!   branches when it changes.
 
-use crate::{BehaviorNode, BoxNode, Status};
+use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
 /// Which branch of a conditional is currently running.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -117,6 +117,34 @@ impl<D> BehaviorNode<D> for IfThenElse<D> {
             branch_word(self.running)
         )
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let branch = match self.running {
+            Some(b) => b,
+            None => {
+                if (self.predicate)(data) {
+                    Branch::Then
+                } else {
+                    Branch::Else
+                }
+            }
+        };
+        let child = match branch {
+            Branch::Then => self.then_node.tick_debug(data),
+            Branch::Else => self.else_node.tick_debug(data),
+        };
+        let status = match child.status {
+            Status::Running => {
+                self.running = Some(branch);
+                Status::Running
+            }
+            done => {
+                self.halt();
+                done
+            }
+        };
+        DebugNode::new(self.node_info(), status, vec![child])
+    }
 }
 
 /// Re-evaluates its predicate every tick and runs the matching branch,
@@ -222,5 +250,44 @@ impl<D> BehaviorNode<D> for ReactiveIfThenElse<D> {
             self.label.as_deref().unwrap_or(""),
             branch_word(self.running)
         )
+    }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let (status, child) = if (self.predicate)(data) {
+            if self.running == Some(Branch::Else) {
+                self.else_node.halt();
+            }
+            self.running = None;
+            let child = self.then_node.tick_debug(data);
+            let status = match child.status {
+                Status::Running => {
+                    self.running = Some(Branch::Then);
+                    Status::Running
+                }
+                done => {
+                    self.then_node.halt();
+                    done
+                }
+            };
+            (status, child)
+        } else {
+            if self.running == Some(Branch::Then) {
+                self.then_node.halt();
+            }
+            self.running = None;
+            let child = self.else_node.tick_debug(data);
+            let status = match child.status {
+                Status::Running => {
+                    self.running = Some(Branch::Else);
+                    Status::Running
+                }
+                done => {
+                    self.else_node.halt();
+                    done
+                }
+            };
+            (status, child)
+        };
+        DebugNode::new(self.node_info(), status, vec![child])
     }
 }

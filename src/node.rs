@@ -1,6 +1,6 @@
 //! The core [`BehaviorNode`] trait and node-boxing helpers.
 
-use crate::Status;
+use crate::{DebugNode, Status};
 
 /// A boxed, type-erased behavior node operating over the context type `D`.
 ///
@@ -40,6 +40,23 @@ pub trait BehaviorNode<D> {
     fn node_info(&self) -> String {
         short_type_name::<Self>()
     }
+
+    /// Tick this node **and** record a [`DebugNode`] trace of everything that
+    /// was processed.
+    ///
+    /// This does the same work as [`tick`](BehaviorNode::tick) but additionally
+    /// returns a tree of the processed node names and their statuses, which is
+    /// invaluable for debugging why a tree behaved the way it did. It is fully
+    /// optional: the plain [`tick`](BehaviorNode::tick) path never builds a
+    /// trace, so tracing costs nothing unless you ask for it.
+    ///
+    /// The default implementation is correct for leaf nodes (it ticks and
+    /// returns a childless trace). Composite nodes override it to also trace
+    /// the children they processed.
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let status = self.tick(data);
+        DebugNode::leaf(self.node_info(), status)
+    }
 }
 
 /// Returns the unqualified type name of `T`, e.g. `Sequence` rather than
@@ -71,6 +88,11 @@ impl<D, N: BehaviorNode<D> + ?Sized> BehaviorNode<D> for Box<N> {
     #[inline]
     fn node_info(&self) -> String {
         (**self).node_info()
+    }
+
+    #[inline]
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        (**self).tick_debug(data)
     }
 }
 

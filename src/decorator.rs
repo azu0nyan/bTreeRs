@@ -5,7 +5,7 @@
 //! * [`Repeat`] — re-run a child up to N successful times.
 //! * [`Retry`] — re-run a failing child up to N times.
 
-use crate::{BehaviorNode, BoxNode, Status};
+use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
 /// Inverts a child's finished result: success becomes failure and vice versa.
 /// [`Status::Running`] is passed through unchanged. Mirrors `Invert`.
@@ -34,6 +34,16 @@ impl<D> BehaviorNode<D> for Invert<D> {
     fn halt(&mut self) {
         self.child.halt();
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let child = self.child.tick_debug(data);
+        let status = match child.status {
+            Status::Running => Status::Running,
+            Status::Success => Status::Failure,
+            Status::Failure => Status::Success,
+        };
+        DebugNode::new(self.node_info(), status, vec![child])
+    }
 }
 
 /// Forces a finished child to [`Status::Success`]. Mirrors `ForceSuccess`.
@@ -61,6 +71,15 @@ impl<D> BehaviorNode<D> for ForceSuccess<D> {
     fn halt(&mut self) {
         self.child.halt();
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let child = self.child.tick_debug(data);
+        let status = match child.status {
+            Status::Running => Status::Running,
+            Status::Success | Status::Failure => Status::Success,
+        };
+        DebugNode::new(self.node_info(), status, vec![child])
+    }
 }
 
 /// Forces a finished child to [`Status::Failure`]. Mirrors `ForceFailure`.
@@ -87,6 +106,15 @@ impl<D> BehaviorNode<D> for ForceFailure<D> {
 
     fn halt(&mut self) {
         self.child.halt();
+    }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let child = self.child.tick_debug(data);
+        let status = match child.status {
+            Status::Running => Status::Running,
+            Status::Success | Status::Failure => Status::Failure,
+        };
+        DebugNode::new(self.node_info(), status, vec![child])
     }
 }
 
@@ -138,6 +166,28 @@ impl<D> BehaviorNode<D> for Repeat<D> {
     fn node_info(&self) -> String {
         format!("Repeating {} / {}", self.repeat, self.count)
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let mut traces = Vec::new();
+        let status = loop {
+            if self.repeat >= self.count {
+                self.repeat = 0;
+                break Status::Success;
+            }
+            let child = self.child.tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Success => self.repeat += 1,
+                Status::Failure => {
+                    self.repeat = 0;
+                    break Status::Failure;
+                }
+                Status::Running => break Status::Running,
+            }
+        };
+        DebugNode::new(self.node_info(), status, traces)
+    }
 }
 
 /// Retries its child until it succeeds or has failed `count` times.
@@ -187,5 +237,27 @@ impl<D> BehaviorNode<D> for Retry<D> {
 
     fn node_info(&self) -> String {
         format!("Retrying {} / {}", self.retry, self.count)
+    }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let mut traces = Vec::new();
+        let status = loop {
+            if self.retry >= self.count {
+                self.retry = 0;
+                break Status::Failure;
+            }
+            let child = self.child.tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Failure => self.retry += 1,
+                Status::Success => {
+                    self.retry = 0;
+                    break Status::Success;
+                }
+                Status::Running => break Status::Running,
+            }
+        };
+        DebugNode::new(self.node_info(), status, traces)
     }
 }

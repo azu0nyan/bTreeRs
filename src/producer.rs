@@ -1,6 +1,6 @@
 //! The [`Producer`] node, which builds its child lazily from the context.
 
-use crate::{BehaviorNode, BoxNode, Status};
+use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
 /// A boxed factory closure that builds a child subtree from the context.
 type ProduceFn<D> = Box<dyn FnMut(&mut D) -> BoxNode<D>>;
@@ -91,5 +91,26 @@ impl<D> BehaviorNode<D> for Producer<D> {
             Some(l) => format!("Producer : {l} : {state}"),
             None => format!("Producer : {state}"),
         }
+    }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        if self.running_node.is_none() {
+            let node = (self.produce)(data);
+            self.running_node = Some(node);
+        }
+        // Unwrap is safe: we just ensured `running_node` is `Some`.
+        let child = self.running_node.as_mut().unwrap().tick_debug(data);
+        let status = match child.status {
+            Status::Success => {
+                self.running_node = None;
+                Status::Success
+            }
+            Status::Failure => {
+                self.running_node = None;
+                Status::Failure
+            }
+            Status::Running => Status::Running,
+        };
+        DebugNode::new(self.node_info(), status, vec![child])
     }
 }

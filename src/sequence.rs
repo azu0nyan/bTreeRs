@@ -18,7 +18,7 @@
 //!
 //! (The fallbacks mirror this with the roles of success/failure swapped.)
 
-use crate::{BehaviorNode, BoxNode, Status};
+use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
 /// Halt every child node.
 fn halt_all<D>(children: &mut [BoxNode<D>]) {
@@ -84,6 +84,28 @@ impl<D> BehaviorNode<D> for Sequence<D> {
     fn node_info(&self) -> String {
         format!("Sequence {} / {}", self.current, self.children.len())
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let mut traces = Vec::new();
+        let status = loop {
+            if self.current >= self.children.len() {
+                self.reset();
+                break Status::Success;
+            }
+            let child = self.children[self.current].tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Failure => {
+                    self.reset();
+                    break Status::Failure;
+                }
+                Status::Running => break Status::Running,
+                Status::Success => self.current += 1,
+            }
+        };
+        DebugNode::new(self.node_info(), status, traces)
+    }
 }
 
 /// A sequence that re-evaluates from the first child on every tick ("reactive
@@ -135,6 +157,39 @@ impl<D> BehaviorNode<D> for ReactiveSequence<D> {
     fn node_info(&self) -> String {
         format!("ReactiveSequence {}", self.children.len())
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let len = self.children.len();
+        let mut traces = Vec::new();
+        let mut status = Status::Success;
+        let mut completed = true;
+        for i in 0..len {
+            let child = self.children[i].tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Failure => {
+                    halt_all(&mut self.children);
+                    status = Status::Failure;
+                    completed = false;
+                    break;
+                }
+                Status::Running => {
+                    for j in (i + 1)..len {
+                        self.children[j].halt();
+                    }
+                    status = Status::Running;
+                    completed = false;
+                    break;
+                }
+                Status::Success => continue,
+            }
+        }
+        if completed {
+            halt_all(&mut self.children);
+        }
+        DebugNode::new(self.node_info(), status, traces)
+    }
 }
 
 /// A sequence that never re-runs a finished child until the whole sequence
@@ -185,6 +240,25 @@ impl<D> BehaviorNode<D> for ProgressiveSequence<D> {
 
     fn node_info(&self) -> String {
         format!("Progressive sequence {} / {}", self.current, self.children.len())
+    }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let mut traces = Vec::new();
+        let status = loop {
+            if self.current >= self.children.len() {
+                self.reset();
+                break Status::Success;
+            }
+            let child = self.children[self.current].tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Failure => break Status::Failure,
+                Status::Running => break Status::Running,
+                Status::Success => self.current += 1,
+            }
+        };
+        DebugNode::new(self.node_info(), status, traces)
     }
 }
 
@@ -238,6 +312,28 @@ impl<D> BehaviorNode<D> for FallbackSequence<D> {
     fn node_info(&self) -> String {
         format!("Fallback {} / {}", self.current, self.children.len())
     }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let mut traces = Vec::new();
+        let status = loop {
+            if self.current >= self.children.len() {
+                self.reset();
+                break Status::Failure;
+            }
+            let child = self.children[self.current].tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Success => {
+                    self.reset();
+                    break Status::Success;
+                }
+                Status::Running => break Status::Running,
+                Status::Failure => self.current += 1,
+            }
+        };
+        DebugNode::new(self.node_info(), status, traces)
+    }
 }
 
 /// A fallback / selector that re-evaluates from the first child on every tick.
@@ -285,5 +381,38 @@ impl<D> BehaviorNode<D> for ReactiveFallbackSequence<D> {
 
     fn node_info(&self) -> String {
         format!("Reactive fallback {}", self.children.len())
+    }
+
+    fn tick_debug(&mut self, data: &mut D) -> DebugNode {
+        let len = self.children.len();
+        let mut traces = Vec::new();
+        let mut status = Status::Failure;
+        let mut completed = true;
+        for i in 0..len {
+            let child = self.children[i].tick_debug(data);
+            let cs = child.status;
+            traces.push(child);
+            match cs {
+                Status::Success => {
+                    halt_all(&mut self.children);
+                    status = Status::Success;
+                    completed = false;
+                    break;
+                }
+                Status::Running => {
+                    for j in (i + 1)..len {
+                        self.children[j].halt();
+                    }
+                    status = Status::Running;
+                    completed = false;
+                    break;
+                }
+                Status::Failure => self.children[i].halt(),
+            }
+        }
+        if completed {
+            halt_all(&mut self.children);
+        }
+        DebugNode::new(self.node_info(), status, traces)
     }
 }

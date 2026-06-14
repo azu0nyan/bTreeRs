@@ -67,6 +67,35 @@ loop {
 }
 ```
 
+## Debugging
+
+Run a tree the normal way with `tick` — that path never allocates and has no
+tracing overhead. When you need to understand *why* a tree did what it did, call
+`tick_debug` instead. It does exactly the same work but also returns a
+`DebugNode` tree of every node processed that tick and the `Status` it returned:
+
+```rust
+use btree::prelude::*;
+
+let mut tree = Sequence::new(nodes![
+    Predicate::labeled("ready", |_: &mut ()| true),
+    Action::labeled("go", |_: &mut ()| Status::Running),
+]);
+
+let trace = tree.tick_debug(&mut ());
+print!("{trace}");
+// Sequence 1 / 2 [Running]
+//   Predicate: ready : true [Success]
+//   Action: go [Running]
+```
+
+Tracing is opt-in and pay-as-you-go, so you can leave `tick` in your hot loop
+and only reach for `tick_debug` when inspecting behavior. `DebugNode` also
+derives `Debug`/`Clone` and offers `.iter()` for a depth-first walk, so you can
+assert on traces in tests or forward them to an in-engine inspector. Custom leaf
+nodes get a sensible trace for free from the default `tick_debug`; custom
+composites override `tick_debug` to record their children.
+
 ## Using it from Godot (gdext)
 
 Make `D` your agent/blackboard type and tick the tree from `_process`:
