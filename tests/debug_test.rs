@@ -1,9 +1,9 @@
 //! All debug-tracing tests live here.
 
-mod test_common;
+mod common;
 
 use btree::prelude::*;
-use test_common::{tagged, Ctx};
+use common::{tagged, Ctx};
 
 #[test]
 fn builds_trace_tree() {

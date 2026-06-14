@@ -1,7 +1,7 @@
-mod test_common;
+mod common;
 
 use btree::prelude::*;
-use test_common::{tagged, Ctx};
+use common::{tagged, Ctx};
 
 #[test]
 fn retries_failed_child_without_resetting() {

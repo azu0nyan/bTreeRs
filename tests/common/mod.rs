@@ -1,8 +1,8 @@
 //! Shared helpers for the integration tests.
 //!
-//! Lives in a subdirectory (`tests/test_common/`) so cargo treats it as a
+//! Lives in a subdirectory (`tests/common/`) so cargo treats it as a
 //! shared module rather than its own test binary. Each test file pulls it in
-//! with `mod test_common;`.
+//! with `mod common;`.
 
 #![allow(dead_code)]
 

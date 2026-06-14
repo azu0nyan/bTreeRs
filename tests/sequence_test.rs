@@ -1,7 +1,7 @@
-mod test_common;
+mod common;
 
 use btree::prelude::*;
-use test_common::{tagged, Ctx};
+use common::{tagged, Ctx};
 
 #[test]
 fn runs_in_order_and_stops_on_failure() {
