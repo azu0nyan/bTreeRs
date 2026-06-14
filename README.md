@@ -48,6 +48,12 @@ pub trait BehaviorNode<D> {
 | `ReactiveIfThenElse` | branch | re-check the predicate every tick, switch branches |
 | `Producer` | composite | lazily build a child subtree from the context, run it, discard it |
 
+Each node type lives in its own file under the [`nodes`](src/nodes) module
+(`btree::nodes::Sequence`, …) and is re-exported at the crate root and from the
+prelude, so `btree::Sequence` and `btree::nodes::Sequence` are the same type.
+The core trait, `Status`, and the debug machinery stay at the top level
+(`node.rs`, `status.rs`, `debug.rs`).
+
 ## Example
 
 ```rust

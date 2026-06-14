@@ -69,25 +69,21 @@
 
 #![warn(missing_docs)]
 
-mod branch;
 mod debug;
-mod decorator;
-mod leaf;
 mod node;
-mod producer;
-mod sequence;
 mod status;
 
-pub use branch::{IfThenElse, ReactiveIfThenElse};
+pub mod nodes;
+
 pub use debug::{record, tick_child, DebugNode};
-pub use decorator::{ForceFailure, ForceSuccess, Invert, Repeat, Retry};
-pub use leaf::{Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, Predicate};
 pub use node::{BehaviorNode, BoxNode, IntoBoxNode};
-pub use producer::Producer;
-pub use sequence::{
-    FallbackSequence, ProgressiveSequence, ReactiveFallbackSequence, ReactiveSequence, Sequence,
-};
 pub use status::Status;
+
+pub use nodes::{
+    Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, FallbackSequence, ForceFailure,
+    ForceSuccess, IfThenElse, Invert, Predicate, Producer, ProgressiveSequence,
+    ReactiveFallbackSequence, ReactiveIfThenElse, ReactiveSequence, Repeat, Retry, Sequence,
+};
 
 /// Build a `Vec<BoxNode<D>>` from a comma-separated list of nodes, boxing each.
 ///
@@ -116,14 +112,9 @@ pub mod prelude {
     pub use crate::node::{BehaviorNode, BoxNode, IntoBoxNode};
     pub use crate::status::Status;
 
-    pub use crate::branch::{IfThenElse, ReactiveIfThenElse};
-    pub use crate::decorator::{ForceFailure, ForceSuccess, Invert, Repeat, Retry};
-    pub use crate::leaf::{Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, Predicate};
-    pub use crate::producer::Producer;
-    pub use crate::sequence::{
-        FallbackSequence, ProgressiveSequence, ReactiveFallbackSequence, ReactiveSequence,
-        Sequence,
-    };
+    // Every concrete node type (see [`crate::nodes`]).
+    pub use crate::nodes::*;
 
+    // The `nodes!` macro (different namespace from the `nodes` module).
     pub use crate::nodes;
 }
