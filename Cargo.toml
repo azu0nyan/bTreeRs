@@ -1,0 +1,16 @@
+[package]
+name = "btree"
+version = "0.1.0"
+edition = "2024"
+description = "Abstract, engine-agnostic behavior tree library (a Rust port of a Scala behavior-tree implementation)."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/azu0nyan/bTreeRs"
+readme = "README.md"
+keywords = ["behavior-tree", "ai", "game-ai", "bt"]
+categories = ["game-development"]
+
+# Standalone workspace root so this crate builds independently even when it is
+# checked out as a git submodule inside another Cargo workspace.
+[workspace]
+
+[dependencies]
