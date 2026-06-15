@@ -35,24 +35,44 @@ pub trait BehaviorNode<D> {
 | `Predicate` | leaf | success/failure from a `FnMut(&mut D) -> bool` |
 | `Action` | leaf | a `FnMut(&mut D) -> Status` (the main "do something" leaf) |
 | `AlwaysSuccess` / `AlwaysFailure` / `AlwaysRunning` | leaf | constant result |
+| `WaitTicks` | leaf | run for N ticks, then succeed |
+| `Wait` | leaf † | run for N seconds, then succeed |
+| `RandomWait` | leaf †‡ | run for a random duration in `[min, max]` seconds |
 | `Sequence` | composite | run children in order, AND; keeps progress across ticks |
 | `ReactiveSequence` | composite | like `Sequence` but restarts from the first child each tick |
 | `ProgressiveSequence` | composite | "sequence star"; a failing child is retried, not reset |
 | `FallbackSequence` | composite | run children in order, OR; keeps progress across ticks |
 | `ReactiveFallbackSequence` | composite | like `FallbackSequence` but restarts each tick |
+| `Parallel` | composite | tick all children each tick; resolve by success/failure policies |
+| `ForEach` | composite | run one child once per item of a context-supplied collection |
+| `RandomSequence` / `RandomSelector` | composite ‡ | `Sequence` / selector run in a shuffled order each run |
+| `ProbabilitySelector` | composite ‡ | pick one child by weighted chance and run it |
 | `Invert` | decorator | swap success/failure |
 | `ForceSuccess` / `ForceFailure` | decorator | coerce the finished result |
 | `Repeat` | decorator | re-run a child up to N successes |
 | `Retry` | decorator | re-run a failing child up to N times |
+| `RepeatUntilSuccess` / `RepeatUntilFailure` | decorator | re-run a child until it succeeds / fails |
+| `RunLimit` | decorator | let a child finish at most N times, then fail |
+| `Delay` | decorator † | wait N seconds, then run the child |
+| `Cooldown` | decorator † | run a child no more often than once per N seconds |
+| `TimeLimit` | decorator † | fail a child that runs longer than N seconds |
+| `Probability` | decorator ‡ | run a child only with probability `p`, else fail |
 | `IfThenElse` | branch | pick a branch by predicate and latch onto it |
 | `ReactiveIfThenElse` | branch | re-check the predicate every tick, switch branches |
 | `Producer` | composite | lazily build a child subtree from the context, run it, discard it |
 
+**† needs `D: HasDelta`** — the context reports the current tick's elapsed time
+(`fn delta_seconds(&self) -> f64`); stash your frame `delta` into the context
+before ticking. **‡ needs `D: HasRng`** — the context supplies uniform random
+draws (`fn next_f64(&mut self) -> f64`). These small capability traits live in
+[`btree::caps`](src/caps) and keep the timing / randomized nodes engine-free and
+deterministic in tests, while still working against a real engine clock and RNG.
+
 Each node type lives in its own file under the [`nodes`](src/nodes) module
 (`btree::nodes::Sequence`, …) and is re-exported at the crate root and from the
 prelude, so `btree::Sequence` and `btree::nodes::Sequence` are the same type.
-The core trait, `Status`, and the debug machinery stay at the top level
-(`node.rs`, `status.rs`, `debug.rs`).
+The core trait, `Status`, the capability traits, and the debug machinery stay at
+the top level (`node.rs`, `status.rs`, `caps/`, `debug.rs`).
 
 ## Example
 
