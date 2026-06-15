@@ -15,14 +15,22 @@
 //!   [`RandomSelector`](crate::RandomSelector),
 //!   [`ProbabilitySelector`](crate::ProbabilitySelector),
 //!   [`Probability`](crate::Probability), [`RandomWait`](crate::RandomWait)).
+//! * [`HasNavAgent`] — the context's agent can compute a navigation path to a
+//!   target. Required by [`SetDestination`](crate::SetDestination).
+//! * [`FollowPath`] — the context's agent can move along a computed path.
+//!   Required by [`GoTo`](crate::GoTo).
 //!
 //! A node that needs a capability simply bounds the impl, e.g.
 //! `impl<D: HasDelta> BehaviorNode<D> for Wait`, so it is only usable on
 //! contexts that provide it. Nodes that need nothing extra stay generic over
 //! any `D`.
 
+mod follow_path;
 mod has_delta;
+mod has_nav_agent;
 mod has_rng;
 
+pub use follow_path::FollowPath;
 pub use has_delta::HasDelta;
+pub use has_nav_agent::HasNavAgent;
 pub use has_rng::HasRng;

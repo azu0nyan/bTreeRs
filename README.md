@@ -34,10 +34,13 @@ pub trait BehaviorNode<D> {
 |------|------|----------|
 | `Predicate` | leaf | success/failure from a `FnMut(&mut D) -> bool` |
 | `Action` | leaf | a `FnMut(&mut D) -> Status` (the main "do something" leaf) |
+| `RunCustomFunc` | leaf | a bare `fn(&mut D) -> Status` — the allocation-free `Action` sibling |
 | `AlwaysSuccess` / `AlwaysFailure` / `AlwaysRunning` | leaf | constant result |
 | `WaitTicks` | leaf | run for N ticks, then succeed |
 | `Wait` | leaf † | run for N seconds, then succeed |
 | `RandomWait` | leaf †‡ | run for a random duration in `[min, max]` seconds |
+| `SetDestination` | leaf § | ask the nav agent to path to its target; forwards the pathfinding status |
+| `GoTo` | leaf §† | move the agent along its path each tick until it arrives |
 | `Sequence` | composite | run children in order, AND; keeps progress across ticks |
 | `ReactiveSequence` | composite | like `Sequence` but restarts from the first child each tick |
 | `ProgressiveSequence` | composite | "sequence star"; a failing child is retried, not reset |
@@ -64,9 +67,14 @@ pub trait BehaviorNode<D> {
 **† needs `D: HasDelta`** — the context reports the current tick's elapsed time
 (`fn delta_seconds(&self) -> f64`); stash your frame `delta` into the context
 before ticking. **‡ needs `D: HasRng`** — the context supplies uniform random
-draws (`fn next_f64(&mut self) -> f64`). These small capability traits live in
-[`btree::caps`](src/caps) and keep the timing / randomized nodes engine-free and
-deterministic in tests, while still working against a real engine clock and RNG.
+draws (`fn next_f64(&mut self) -> f64`). **§ needs a navigation capability** —
+`SetDestination` needs `D: HasNavAgent` (`fn set_destination(&mut self) -> Status`,
+returning `Failure` if no path, `Running` while computing, `Success` when one is
+ready); `GoTo` needs `D: FollowPath` (`fn advance(&mut self, delta: f64) -> Status`)
+and `D: HasDelta`. These small capability traits live in
+[`btree::caps`](src/caps) and keep the timing / randomized / navigation nodes
+engine-free and deterministic in tests, while still working against a real engine
+clock, RNG, and navigation agent.
 
 Each node type lives in its own file under the [`nodes`](src/nodes) module
 (`btree::nodes::Sequence`, …) and is re-exported at the crate root and from the

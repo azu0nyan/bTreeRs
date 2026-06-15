@@ -3,8 +3,9 @@
 //! These are the building blocks you compose into a tree:
 //!
 //! * **Leaves** that look at and act on the context: [`Predicate`], [`Action`],
-//!   [`AlwaysSuccess`], [`AlwaysFailure`], [`AlwaysRunning`], plus the timers
-//!   [`Wait`], [`WaitTicks`] and [`RandomWait`].
+//!   [`RunCustomFunc`], [`AlwaysSuccess`], [`AlwaysFailure`], [`AlwaysRunning`],
+//!   the timers [`Wait`], [`WaitTicks`] and [`RandomWait`], and the navigation
+//!   leaves [`SetDestination`] and [`GoTo`].
 //! * **Decorators** that transform a single child: [`Invert`], [`ForceSuccess`],
 //!   [`ForceFailure`], [`Repeat`], [`Retry`], [`RepeatUntilSuccess`],
 //!   [`RepeatUntilFailure`], [`RunLimit`], [`Delay`], [`Cooldown`],
@@ -20,8 +21,9 @@
 //!
 //! Every type here implements [`BehaviorNode`] over a context type `D`. Some
 //! bound `D` on a capability trait (see [`caps`](crate::caps)): the timers need
-//! [`HasDelta`](crate::HasDelta) and the randomized nodes need
-//! [`HasRng`]. They are re-exported at the crate root (and from
+//! [`HasDelta`](crate::HasDelta), the randomized nodes need [`HasRng`], and the
+//! navigation leaves need [`HasNavAgent`](crate::HasNavAgent) /
+//! [`FollowPath`](crate::FollowPath). They are re-exported at the crate root (and from
 //! the [`prelude`](crate::prelude)), so `btree::Sequence` and
 //! `btree::nodes::Sequence` name the same type.
 
@@ -33,8 +35,11 @@ mod action;
 mod always_failure;
 mod always_running;
 mod always_success;
+mod go_to;
 mod predicate;
 mod random_wait;
+mod run_custom_func;
+mod set_destination;
 mod wait;
 mod wait_ticks;
 
@@ -75,8 +80,11 @@ pub use action::Action;
 pub use always_failure::AlwaysFailure;
 pub use always_running::AlwaysRunning;
 pub use always_success::AlwaysSuccess;
+pub use go_to::GoTo;
 pub use predicate::Predicate;
 pub use random_wait::RandomWait;
+pub use run_custom_func::RunCustomFunc;
+pub use set_destination::SetDestination;
 pub use wait::Wait;
 pub use wait_ticks::WaitTicks;
 

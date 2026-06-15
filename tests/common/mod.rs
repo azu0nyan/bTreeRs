@@ -23,14 +23,19 @@ pub fn tagged(tag: &'static str, status: Status) -> Action<Ctx> {
     })
 }
 
-/// A context for the timing / randomized nodes: a fixed per-tick delta, a log
-/// of which actions ran, and a deterministic RNG that replays a fixed queue of
-/// draws (cycling if exhausted).
+/// A context for the timing / randomized / navigation nodes: a fixed per-tick
+/// delta, a log of which actions ran, a deterministic RNG that replays a fixed
+/// queue of draws (cycling if exhausted), and a toy navigation agent.
 pub struct Sim {
     pub delta: f64,
     pub log: Vec<&'static str>,
     rng: Vec<f64>,
     rng_at: usize,
+    /// What [`HasNavAgent::set_destination`] reports (for `SetDestination`).
+    pub nav_status: Status,
+    /// Remaining travel time; [`FollowPath::advance`] decrements it by `delta`
+    /// and succeeds once it reaches zero (for `GoTo`).
+    pub nav_remaining: f64,
 }
 
 impl Sim {
@@ -47,6 +52,8 @@ impl Sim {
             log: Vec::new(),
             rng,
             rng_at: 0,
+            nav_status: Status::Success,
+            nav_remaining: 0.0,
         }
     }
 }
@@ -71,5 +78,25 @@ impl HasRng for Sim {
         let v = self.rng[self.rng_at % self.rng.len()];
         self.rng_at += 1;
         v
+    }
+}
+
+impl HasNavAgent for Sim {
+    fn set_destination(&mut self) -> Status {
+        self.nav_status
+    }
+}
+
+impl FollowPath for Sim {
+    fn advance(&mut self, delta: f64) -> Status {
+        if self.nav_remaining <= 0.0 {
+            return Status::Success;
+        }
+        self.nav_remaining -= delta;
+        if self.nav_remaining <= 0.0 {
+            Status::Success
+        } else {
+            Status::Running
+        }
     }
 }

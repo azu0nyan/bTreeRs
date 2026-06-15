@@ -76,18 +76,18 @@ mod status;
 pub mod caps;
 pub mod nodes;
 
-pub use caps::{HasDelta, HasRng};
+pub use caps::{FollowPath, HasDelta, HasNavAgent, HasRng};
 pub use debug::{record, tick_child, DebugNode};
 pub use node::{BehaviorNode, BoxNode, IntoBoxNode};
 pub use status::Status;
 
 pub use nodes::{
     Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, Cooldown, Delay, FallbackSequence,
-    ForEach, ForceFailure, ForceSuccess, IfThenElse, Invert, Parallel, ParallelPolicy, Predicate,
-    Probability, ProbabilitySelector, Producer, ProgressiveSequence, RandomSelector,
+    ForEach, ForceFailure, ForceSuccess, GoTo, IfThenElse, Invert, Parallel, ParallelPolicy,
+    Predicate, Probability, ProbabilitySelector, Producer, ProgressiveSequence, RandomSelector,
     RandomSequence, RandomWait, ReactiveFallbackSequence, ReactiveIfThenElse, ReactiveSequence,
-    Repeat, RepeatUntilFailure, RepeatUntilSuccess, Retry, RunLimit, Sequence, TimeLimit, Wait,
-    WaitTicks,
+    Repeat, RepeatUntilFailure, RepeatUntilSuccess, Retry, RunCustomFunc, RunLimit, Sequence,
+    SetDestination, TimeLimit, Wait, WaitTicks,
 };
 
 /// Build a `Vec<BoxNode<D>>` from a comma-separated list of nodes, boxing each.
@@ -113,7 +113,7 @@ macro_rules! nodes {
 
 /// Re-exports of everything you typically need to build and tick a tree.
 pub mod prelude {
-    pub use crate::caps::{HasDelta, HasRng};
+    pub use crate::caps::{FollowPath, HasDelta, HasNavAgent, HasRng};
     pub use crate::debug::{record, tick_child, DebugNode};
     pub use crate::node::{BehaviorNode, BoxNode, IntoBoxNode};
     pub use crate::status::Status;
