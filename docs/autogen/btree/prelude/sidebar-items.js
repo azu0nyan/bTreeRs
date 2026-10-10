@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Status"],"fn":["record","tick_child"],"macro":["nodes"],"struct":["DebugNode"],"trait":["BehaviorNode","IntoBoxNode"],"type":["BoxNode"]};
