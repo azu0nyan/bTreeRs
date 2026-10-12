@@ -26,22 +26,16 @@
 <a href=#26 id=26 data-nosnippet>26</a>    <span class="kw">fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _data: <span class="kw-2">&amp;mut </span>D, dbg: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>DebugNode&gt;) -&gt; Status {
 <a href=#27 id=27 data-nosnippet>27</a>        <span class="self">self</span>.elapsed += <span class="number">1</span>;
 <a href=#28 id=28 data-nosnippet>28</a>        <span class="kw">let </span>done = <span class="self">self</span>.elapsed &gt;= <span class="self">self</span>.ticks;
-<a href=#29 id=29 data-nosnippet>29</a>        <span class="kw">let </span>status = <span class="kw">if </span>done {
-<a href=#30 id=30 data-nosnippet>30</a>            Status::Success
-<a href=#31 id=31 data-nosnippet>31</a>        } <span class="kw">else </span>{
-<a href=#32 id=32 data-nosnippet>32</a>            Status::Running
-<a href=#33 id=33 data-nosnippet>33</a>        };
-<a href=#34 id=34 data-nosnippet>34</a>        record(dbg, status, || {
-<a href=#35 id=35 data-nosnippet>35</a>            <span class="macro">format!</span>(<span class="string">"WaitTicks {} / {}"</span>, <span class="self">self</span>.elapsed, <span class="self">self</span>.ticks)
-<a href=#36 id=36 data-nosnippet>36</a>        });
-<a href=#37 id=37 data-nosnippet>37</a>        <span class="kw">if </span>done {
-<a href=#38 id=38 data-nosnippet>38</a>            <span class="self">self</span>.elapsed = <span class="number">0</span>;
-<a href=#39 id=39 data-nosnippet>39</a>        }
-<a href=#40 id=40 data-nosnippet>40</a>        status
-<a href=#41 id=41 data-nosnippet>41</a>    }
-<a href=#42 id=42 data-nosnippet>42</a>
-<a href=#43 id=43 data-nosnippet>43</a>    <span class="kw">fn </span>halt(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-<a href=#44 id=44 data-nosnippet>44</a>        <span class="self">self</span>.elapsed = <span class="number">0</span>;
-<a href=#45 id=45 data-nosnippet>45</a>    }
-<a href=#46 id=46 data-nosnippet>46</a>}
+<a href=#29 id=29 data-nosnippet>29</a>        <span class="kw">let </span>status = <span class="kw">if </span>done { Status::Success } <span class="kw">else </span>{ Status::Running };
+<a href=#30 id=30 data-nosnippet>30</a>        record(dbg, status, || <span class="macro">format!</span>(<span class="string">"WaitTicks {} / {}"</span>, <span class="self">self</span>.elapsed, <span class="self">self</span>.ticks));
+<a href=#31 id=31 data-nosnippet>31</a>        <span class="kw">if </span>done {
+<a href=#32 id=32 data-nosnippet>32</a>            <span class="self">self</span>.elapsed = <span class="number">0</span>;
+<a href=#33 id=33 data-nosnippet>33</a>        }
+<a href=#34 id=34 data-nosnippet>34</a>        status
+<a href=#35 id=35 data-nosnippet>35</a>    }
+<a href=#36 id=36 data-nosnippet>36</a>
+<a href=#37 id=37 data-nosnippet>37</a>    <span class="kw">fn </span>halt(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+<a href=#38 id=38 data-nosnippet>38</a>        <span class="self">self</span>.elapsed = <span class="number">0</span>;
+<a href=#39 id=39 data-nosnippet>39</a>    }
+<a href=#40 id=40 data-nosnippet>40</a>}
 </code></pre></div></section></main></body></html>

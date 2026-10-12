@@ -77,51 +77,48 @@
 <a href=#77 id=77 data-nosnippet>77</a><span class="kw">pub mod </span>nodes;
 <a href=#78 id=78 data-nosnippet>78</a>
 <a href=#79 id=79 data-nosnippet>79</a><span class="kw">pub use </span>caps::{FollowPath, HasDelta, HasNavAgent, HasRng};
-<a href=#80 id=80 data-nosnippet>80</a><span class="kw">pub use </span>debug::{record, tick_child, DebugNode};
+<a href=#80 id=80 data-nosnippet>80</a><span class="kw">pub use </span>debug::{DebugNode, record, tick_child};
 <a href=#81 id=81 data-nosnippet>81</a><span class="kw">pub use </span>node::{BehaviorNode, BoxNode, IntoBoxNode};
 <a href=#82 id=82 data-nosnippet>82</a><span class="kw">pub use </span>status::Status;
 <a href=#83 id=83 data-nosnippet>83</a>
 <a href=#84 id=84 data-nosnippet>84</a><span class="kw">pub use </span>nodes::{
-<a href=#85 id=85 data-nosnippet>85</a>    Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, Cooldown, Delay, FallbackSequence,
-<a href=#86 id=86 data-nosnippet>86</a>    ForEach, ForceFailure, ForceSuccess, GoTo, IfThenElse, Invert, Parallel, ParallelPolicy,
-<a href=#87 id=87 data-nosnippet>87</a>    Predicate, Probability, ProbabilitySelector, Producer, ProgressiveSequence, RandomSelector,
-<a href=#88 id=88 data-nosnippet>88</a>    RandomSequence, RandomWait, ReactiveFallbackSequence, ReactiveIfThenElse, ReactiveSequence,
-<a href=#89 id=89 data-nosnippet>89</a>    Repeat, RepeatUntilFailure, RepeatUntilSuccess, Retry, RunCustomFunc, RunLimit, Sequence,
-<a href=#90 id=90 data-nosnippet>90</a>    SetDestination, TimeLimit, Wait, WaitTicks,
-<a href=#91 id=91 data-nosnippet>91</a>};
-<a href=#92 id=92 data-nosnippet>92</a>
-<a href=#93 id=93 data-nosnippet>93</a><span class="doccomment">/// Build a `Vec&lt;BoxNode&lt;D&gt;&gt;` from a comma-separated list of nodes, boxing each.
+<a href=#85 id=85 data-nosnippet>85</a>    Action, AlwaysFailure, AlwaysRunning, AlwaysSuccess, Cooldown, Delay, FallbackSequence, ForEach, ForceFailure, ForceSuccess, GoTo, IfThenElse, Invert, Parallel,
+<a href=#86 id=86 data-nosnippet>86</a>    ParallelPolicy, Predicate, Probability, ProbabilitySelector, Producer, ProgressiveSequence, RandomSelector, RandomSequence, RandomWait, ReactiveFallbackSequence,
+<a href=#87 id=87 data-nosnippet>87</a>    ReactiveIfThenElse, ReactiveSequence, Repeat, RepeatUntilFailure, RepeatUntilSuccess, Retry, RunCustomFunc, RunLimit, Sequence, SetDestination, TimeLimit, Wait, WaitTicks,
+<a href=#88 id=88 data-nosnippet>88</a>};
+<a href=#89 id=89 data-nosnippet>89</a>
+<a href=#90 id=90 data-nosnippet>90</a><span class="doccomment">/// Build a `Vec&lt;BoxNode&lt;D&gt;&gt;` from a comma-separated list of nodes, boxing each.
+<a href=#91 id=91 data-nosnippet>91</a>///
+<a href=#92 id=92 data-nosnippet>92</a>/// This is the ergonomic way to pass children to the composite constructors,
+<a href=#93 id=93 data-nosnippet>93</a>/// which take a `Vec&lt;BoxNode&lt;D&gt;&gt;`.
 <a href=#94 id=94 data-nosnippet>94</a>///
-<a href=#95 id=95 data-nosnippet>95</a>/// This is the ergonomic way to pass children to the composite constructors,
-<a href=#96 id=96 data-nosnippet>96</a>/// which take a `Vec&lt;BoxNode&lt;D&gt;&gt;`.
+<a href=#95 id=95 data-nosnippet>95</a>/// ```
+<a href=#96 id=96 data-nosnippet>96</a>/// use btree::prelude::*;
 <a href=#97 id=97 data-nosnippet>97</a>///
-<a href=#98 id=98 data-nosnippet>98</a>/// ```
-<a href=#99 id=99 data-nosnippet>99</a>/// use btree::prelude::*;
-<a href=#100 id=100 data-nosnippet>100</a>///
-<a href=#101 id=101 data-nosnippet>101</a>/// let mut seq: Sequence&lt;()&gt; = Sequence::new(nodes![
-<a href=#102 id=102 data-nosnippet>102</a>///     AlwaysSuccess,
-<a href=#103 id=103 data-nosnippet>103</a>///     AlwaysSuccess,
-<a href=#104 id=104 data-nosnippet>104</a>/// ]);
-<a href=#105 id=105 data-nosnippet>105</a>/// assert_eq!(seq.tick(&amp;mut (), None), Status::Success);
-<a href=#106 id=106 data-nosnippet>106</a>/// ```
-<a href=#107 id=107 data-nosnippet>107</a></span><span class="attr">#[macro_export]
-<a href=#108 id=108 data-nosnippet>108</a></span><span class="macro">macro_rules!</span> nodes {
-<a href=#109 id=109 data-nosnippet>109</a>    ($(<span class="macro-nonterminal">$node</span>:expr),* $(,)<span class="question-mark">?</span>) =&gt; {
-<a href=#110 id=110 data-nosnippet>110</a>        <span class="macro">::std::vec!</span>[$(<span class="macro-nonterminal">$crate::IntoBoxNode::boxed</span>(<span class="macro-nonterminal">$node</span>)),<span class="kw-2">*</span>]
-<a href=#111 id=111 data-nosnippet>111</a>    };
-<a href=#112 id=112 data-nosnippet>112</a>}
-<a href=#113 id=113 data-nosnippet>113</a>
-<a href=#114 id=114 data-nosnippet>114</a><span class="doccomment">/// Re-exports of everything you typically need to build and tick a tree.
-<a href=#115 id=115 data-nosnippet>115</a></span><span class="kw">pub mod </span>prelude {
-<a href=#116 id=116 data-nosnippet>116</a>    <span class="kw">pub use </span><span class="kw">crate</span>::caps::{FollowPath, HasDelta, HasNavAgent, HasRng};
-<a href=#117 id=117 data-nosnippet>117</a>    <span class="kw">pub use </span><span class="kw">crate</span>::debug::{record, tick_child, DebugNode};
-<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">pub use </span><span class="kw">crate</span>::node::{BehaviorNode, BoxNode, IntoBoxNode};
-<a href=#119 id=119 data-nosnippet>119</a>    <span class="kw">pub use </span><span class="kw">crate</span>::status::Status;
+<a href=#98 id=98 data-nosnippet>98</a>/// let mut seq: Sequence&lt;()&gt; = Sequence::new(nodes![
+<a href=#99 id=99 data-nosnippet>99</a>///     AlwaysSuccess,
+<a href=#100 id=100 data-nosnippet>100</a>///     AlwaysSuccess,
+<a href=#101 id=101 data-nosnippet>101</a>/// ]);
+<a href=#102 id=102 data-nosnippet>102</a>/// assert_eq!(seq.tick(&amp;mut (), None), Status::Success);
+<a href=#103 id=103 data-nosnippet>103</a>/// ```
+<a href=#104 id=104 data-nosnippet>104</a></span><span class="attr">#[macro_export]
+<a href=#105 id=105 data-nosnippet>105</a></span><span class="macro">macro_rules!</span> nodes {
+<a href=#106 id=106 data-nosnippet>106</a>    ($(<span class="macro-nonterminal">$node</span>:expr),* $(,)<span class="question-mark">?</span>) =&gt; {
+<a href=#107 id=107 data-nosnippet>107</a>        <span class="macro">::std::vec!</span>[$(<span class="macro-nonterminal">$crate::IntoBoxNode::boxed</span>(<span class="macro-nonterminal">$node</span>)),<span class="kw-2">*</span>]
+<a href=#108 id=108 data-nosnippet>108</a>    };
+<a href=#109 id=109 data-nosnippet>109</a>}
+<a href=#110 id=110 data-nosnippet>110</a>
+<a href=#111 id=111 data-nosnippet>111</a><span class="doccomment">/// Re-exports of everything you typically need to build and tick a tree.
+<a href=#112 id=112 data-nosnippet>112</a></span><span class="kw">pub mod </span>prelude {
+<a href=#113 id=113 data-nosnippet>113</a>    <span class="kw">pub use </span><span class="kw">crate</span>::caps::{FollowPath, HasDelta, HasNavAgent, HasRng};
+<a href=#114 id=114 data-nosnippet>114</a>    <span class="kw">pub use </span><span class="kw">crate</span>::debug::{DebugNode, record, tick_child};
+<a href=#115 id=115 data-nosnippet>115</a>    <span class="kw">pub use </span><span class="kw">crate</span>::node::{BehaviorNode, BoxNode, IntoBoxNode};
+<a href=#116 id=116 data-nosnippet>116</a>    <span class="kw">pub use </span><span class="kw">crate</span>::status::Status;
+<a href=#117 id=117 data-nosnippet>117</a>
+<a href=#118 id=118 data-nosnippet>118</a>    <span class="comment">// Every concrete node type (see [`crate::nodes`]).
+<a href=#119 id=119 data-nosnippet>119</a>    </span><span class="kw">pub use </span><span class="kw">crate</span>::nodes::<span class="kw-2">*</span>;
 <a href=#120 id=120 data-nosnippet>120</a>
-<a href=#121 id=121 data-nosnippet>121</a>    <span class="comment">// Every concrete node type (see [`crate::nodes`]).
-<a href=#122 id=122 data-nosnippet>122</a>    </span><span class="kw">pub use </span><span class="kw">crate</span>::nodes::<span class="kw-2">*</span>;
-<a href=#123 id=123 data-nosnippet>123</a>
-<a href=#124 id=124 data-nosnippet>124</a>    <span class="comment">// The `nodes!` macro (different namespace from the `nodes` module).
-<a href=#125 id=125 data-nosnippet>125</a>    </span><span class="kw">pub use </span><span class="kw">crate</span>::nodes;
-<a href=#126 id=126 data-nosnippet>126</a>}
+<a href=#121 id=121 data-nosnippet>121</a>    <span class="comment">// The `nodes!` macro (different namespace from the `nodes` module).
+<a href=#122 id=122 data-nosnippet>122</a>    </span><span class="kw">pub use </span><span class="kw">crate</span>::nodes;
+<a href=#123 id=123 data-nosnippet>123</a>}
 </code></pre></div></section></main></body></html>

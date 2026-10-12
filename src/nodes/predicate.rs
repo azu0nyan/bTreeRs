@@ -45,11 +45,7 @@ impl<D> Predicate<D> {
 impl<D> BehaviorNode<D> for Predicate<D> {
     fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
         self.last_result = (self.predicate)(data);
-        let status = if self.last_result {
-            Status::Success
-        } else {
-            Status::Failure
-        };
+        let status = if self.last_result { Status::Success } else { Status::Failure };
         record(dbg, status, || self.node_info());
         status
     }

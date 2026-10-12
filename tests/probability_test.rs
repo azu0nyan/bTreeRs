@@ -1,7 +1,7 @@
 mod common;
 
 use btree::prelude::*;
-use common::{sim_tagged, Sim};
+use common::{Sim, sim_tagged};
 
 #[test]
 fn runs_child_on_passing_roll() {

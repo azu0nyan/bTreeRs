@@ -26,14 +26,8 @@ impl<D> BehaviorNode<D> for WaitTicks {
     fn tick(&mut self, _data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
         self.elapsed += 1;
         let done = self.elapsed >= self.ticks;
-        let status = if done {
-            Status::Success
-        } else {
-            Status::Running
-        };
-        record(dbg, status, || {
-            format!("WaitTicks {} / {}", self.elapsed, self.ticks)
-        });
+        let status = if done { Status::Success } else { Status::Running };
+        record(dbg, status, || format!("WaitTicks {} / {}", self.elapsed, self.ticks));
         if done {
             self.elapsed = 0;
         }

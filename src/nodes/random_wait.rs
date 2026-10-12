@@ -41,15 +41,9 @@ impl<D: HasDelta + HasRng> BehaviorNode<D> for RandomWait {
         };
         self.elapsed += data.delta_seconds();
         let done = self.elapsed >= target;
-        let status = if done {
-            Status::Success
-        } else {
-            Status::Running
-        };
+        let status = if done { Status::Success } else { Status::Running };
         let elapsed = self.elapsed;
-        record(dbg, status, || {
-            format!("RandomWait {elapsed:.3} / {target:.3}")
-        });
+        record(dbg, status, || format!("RandomWait {elapsed:.3} / {target:.3}"));
         if done {
             self.target = None;
             self.elapsed = 0.0;

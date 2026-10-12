@@ -12,9 +12,7 @@ pub struct Invert<D> {
 impl<D> Invert<D> {
     /// Wrap `child` in an inverting decorator.
     pub fn new(child: impl BehaviorNode<D> + 'static) -> Self {
-        Self {
-            child: Box::new(child),
-        }
+        Self { child: Box::new(child) }
     }
 }
 

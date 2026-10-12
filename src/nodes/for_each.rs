@@ -33,10 +33,7 @@ impl<D> ForEach<D> {
     ///
     /// `advance` should move to the next item (e.g. write it into the context)
     /// and return `true` if there was a next item, `false` once exhausted.
-    pub fn new(
-        child: impl BehaviorNode<D> + 'static,
-        advance: impl FnMut(&mut D) -> bool + 'static,
-    ) -> Self {
+    pub fn new(child: impl BehaviorNode<D> + 'static, advance: impl FnMut(&mut D) -> bool + 'static) -> Self {
         Self {
             child: Box::new(child),
             advance: Box::new(advance),

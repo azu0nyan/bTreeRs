@@ -118,11 +118,7 @@ pub fn record(dbg: Option<&mut DebugNode>, status: Status, name: impl FnOnce() -
 /// slot, ticks the child into it, and pushes it onto `parent.children`. When
 /// `parent` is `None` it simply forwards `None` to the child — no allocation.
 #[inline]
-pub fn tick_child<D>(
-    child: &mut dyn BehaviorNode<D>,
-    data: &mut D,
-    parent: &mut Option<&mut DebugNode>,
-) -> Status {
+pub fn tick_child<D>(child: &mut dyn BehaviorNode<D>, data: &mut D, parent: &mut Option<&mut DebugNode>) -> Status {
     match parent.as_deref_mut() {
         Some(slot) => {
             let mut sub = DebugNode::empty();

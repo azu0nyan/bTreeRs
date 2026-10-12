@@ -18,10 +18,7 @@ pub struct Wait {
 impl Wait {
     /// Wait `duration` seconds before succeeding.
     pub fn new(duration: f64) -> Self {
-        Self {
-            duration,
-            elapsed: 0.0,
-        }
+        Self { duration, elapsed: 0.0 }
     }
 }
 
@@ -29,14 +26,8 @@ impl<D: HasDelta> BehaviorNode<D> for Wait {
     fn tick(&mut self, data: &mut D, dbg: Option<&mut DebugNode>) -> Status {
         self.elapsed += data.delta_seconds();
         let done = self.elapsed >= self.duration;
-        let status = if done {
-            Status::Success
-        } else {
-            Status::Running
-        };
-        record(dbg, status, || {
-            format!("Wait {:.3} / {:.3}", self.elapsed, self.duration)
-        });
+        let status = if done { Status::Success } else { Status::Running };
+        record(dbg, status, || format!("Wait {:.3} / {:.3}", self.elapsed, self.duration));
         if done {
             self.elapsed = 0.0;
         }

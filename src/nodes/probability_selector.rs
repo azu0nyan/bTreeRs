@@ -28,11 +28,7 @@ impl<D> ProbabilitySelector<D> {
             weights.push(w.max(0.0));
             children.push(child);
         }
-        Self {
-            weights,
-            children,
-            chosen: None,
-        }
+        Self { weights, children, chosen: None }
     }
 }
 
@@ -41,9 +37,7 @@ impl<D: HasRng> BehaviorNode<D> for ProbabilitySelector<D> {
         if self.chosen.is_none() {
             let total: f64 = self.weights.iter().sum();
             if total <= 0.0 {
-                record(dbg, Status::Failure, || {
-                    "ProbabilitySelector (no weight)".to_string()
-                });
+                record(dbg, Status::Failure, || "ProbabilitySelector (no weight)".to_string());
                 return Status::Failure;
             }
             let mut roll = data.next_f64() * total;

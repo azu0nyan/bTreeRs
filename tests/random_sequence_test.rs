@@ -1,16 +1,12 @@
 mod common;
 
 use btree::prelude::*;
-use common::{sim_tagged, Sim};
+use common::{Sim, sim_tagged};
 
 #[test]
 fn runs_all_children_when_they_succeed() {
     let mut sim = Sim::new(0.0);
-    let mut s = RandomSequence::new(nodes![
-        sim_tagged("a", Status::Success),
-        sim_tagged("b", Status::Success),
-        sim_tagged("c", Status::Success),
-    ]);
+    let mut s = RandomSequence::new(nodes![sim_tagged("a", Status::Success), sim_tagged("b", Status::Success), sim_tagged("c", Status::Success),]);
     assert_eq!(s.tick(&mut sim, None), Status::Success);
     // All three ran exactly once (in some shuffled order).
     let mut ran = sim.log.clone();

@@ -43,9 +43,7 @@ impl<D: HasDelta> BehaviorNode<D> for Delay<D> {
             if self.elapsed < self.duration {
                 let elapsed = self.elapsed;
                 let duration = self.duration;
-                record(dbg, Status::Running, || {
-                    format!("Delay {elapsed:.3} / {duration:.3}")
-                });
+                record(dbg, Status::Running, || format!("Delay {elapsed:.3} / {duration:.3}"));
                 return Status::Running;
             }
             self.fired = true;

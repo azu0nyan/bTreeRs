@@ -41,19 +41,11 @@ impl<D> Parallel<D> {
     /// Build a parallel that succeeds when all children succeed and fails as
     /// soon as one child fails.
     pub fn new(children: Vec<BoxNode<D>>) -> Self {
-        Self::with_policies(
-            children,
-            ParallelPolicy::RequireAll,
-            ParallelPolicy::RequireOne,
-        )
+        Self::with_policies(children, ParallelPolicy::RequireAll, ParallelPolicy::RequireOne)
     }
 
     /// Build a parallel with explicit `success` and `failure` policies.
-    pub fn with_policies(
-        children: Vec<BoxNode<D>>,
-        success: ParallelPolicy,
-        failure: ParallelPolicy,
-    ) -> Self {
+    pub fn with_policies(children: Vec<BoxNode<D>>, success: ParallelPolicy, failure: ParallelPolicy) -> Self {
         let results = vec![None; children.len()];
         Self {
             children,
@@ -83,16 +75,8 @@ impl<D> BehaviorNode<D> for Parallel<D> {
             }
         }
 
-        let successes = self
-            .results
-            .iter()
-            .filter(|r| **r == Some(Status::Success))
-            .count();
-        let failures = self
-            .results
-            .iter()
-            .filter(|r| **r == Some(Status::Failure))
-            .count();
+        let successes = self.results.iter().filter(|r| **r == Some(Status::Success)).count();
+        let failures = self.results.iter().filter(|r| **r == Some(Status::Failure)).count();
 
         let failed = match self.failure {
             ParallelPolicy::RequireOne => failures >= 1,

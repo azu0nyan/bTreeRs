@@ -118,19 +118,15 @@
 <a href=#118 id=118 data-nosnippet>118</a>/// slot, ticks the child into it, and pushes it onto `parent.children`. When
 <a href=#119 id=119 data-nosnippet>119</a>/// `parent` is `None` it simply forwards `None` to the child — no allocation.
 <a href=#120 id=120 data-nosnippet>120</a></span><span class="attr">#[inline]
-<a href=#121 id=121 data-nosnippet>121</a></span><span class="kw">pub fn </span>tick_child&lt;D&gt;(
-<a href=#122 id=122 data-nosnippet>122</a>    child: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>BehaviorNode&lt;D&gt;,
-<a href=#123 id=123 data-nosnippet>123</a>    data: <span class="kw-2">&amp;mut </span>D,
-<a href=#124 id=124 data-nosnippet>124</a>    parent: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>DebugNode&gt;,
-<a href=#125 id=125 data-nosnippet>125</a>) -&gt; Status {
-<a href=#126 id=126 data-nosnippet>126</a>    <span class="kw">match </span>parent.as_deref_mut() {
-<a href=#127 id=127 data-nosnippet>127</a>        <span class="prelude-val">Some</span>(slot) =&gt; {
-<a href=#128 id=128 data-nosnippet>128</a>            <span class="kw">let </span><span class="kw-2">mut </span>sub = DebugNode::empty();
-<a href=#129 id=129 data-nosnippet>129</a>            <span class="kw">let </span>status = child.tick(data, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span>sub));
-<a href=#130 id=130 data-nosnippet>130</a>            slot.children.push(sub);
-<a href=#131 id=131 data-nosnippet>131</a>            status
-<a href=#132 id=132 data-nosnippet>132</a>        }
-<a href=#133 id=133 data-nosnippet>133</a>        <span class="prelude-val">None </span>=&gt; child.tick(data, <span class="prelude-val">None</span>),
-<a href=#134 id=134 data-nosnippet>134</a>    }
-<a href=#135 id=135 data-nosnippet>135</a>}
+<a href=#121 id=121 data-nosnippet>121</a></span><span class="kw">pub fn </span>tick_child&lt;D&gt;(child: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>BehaviorNode&lt;D&gt;, data: <span class="kw-2">&amp;mut </span>D, parent: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>DebugNode&gt;) -&gt; Status {
+<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">match </span>parent.as_deref_mut() {
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="prelude-val">Some</span>(slot) =&gt; {
+<a href=#124 id=124 data-nosnippet>124</a>            <span class="kw">let </span><span class="kw-2">mut </span>sub = DebugNode::empty();
+<a href=#125 id=125 data-nosnippet>125</a>            <span class="kw">let </span>status = child.tick(data, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span>sub));
+<a href=#126 id=126 data-nosnippet>126</a>            slot.children.push(sub);
+<a href=#127 id=127 data-nosnippet>127</a>            status
+<a href=#128 id=128 data-nosnippet>128</a>        }
+<a href=#129 id=129 data-nosnippet>129</a>        <span class="prelude-val">None </span>=&gt; child.tick(data, <span class="prelude-val">None</span>),
+<a href=#130 id=130 data-nosnippet>130</a>    }
+<a href=#131 id=131 data-nosnippet>131</a>}
 </code></pre></div></section></main></body></html>

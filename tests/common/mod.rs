@@ -93,10 +93,6 @@ impl FollowPath for Sim {
             return Status::Success;
         }
         self.nav_remaining -= delta;
-        if self.nav_remaining <= 0.0 {
-            Status::Success
-        } else {
-            Status::Running
-        }
+        if self.nav_remaining <= 0.0 { Status::Success } else { Status::Running }
     }
 }

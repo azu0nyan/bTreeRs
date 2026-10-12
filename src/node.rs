@@ -74,11 +74,7 @@ pub trait BehaviorNode<D> {
 pub(crate) fn short_type_name<T: ?Sized>() -> String {
     let full = std::any::type_name::<T>();
     let before_generics = full.split('<').next().unwrap_or(full);
-    before_generics
-        .rsplit("::")
-        .next()
-        .unwrap_or(before_generics)
-        .to_string()
+    before_generics.rsplit("::").next().unwrap_or(before_generics).to_string()
 }
 
 /// Forwarding impl so a `Box<dyn BehaviorNode<D>>` (or any boxed node) is itself

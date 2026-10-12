@@ -11,9 +11,7 @@ pub struct ForceSuccess<D> {
 impl<D> ForceSuccess<D> {
     /// Wrap `child` so its finished result is always success.
     pub fn new(child: impl BehaviorNode<D> + 'static) -> Self {
-        Self {
-            child: Box::new(child),
-        }
+        Self { child: Box::new(child) }
     }
 }
 

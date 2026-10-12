@@ -17,9 +17,7 @@ pub struct RepeatUntilSuccess<D> {
 impl<D> RepeatUntilSuccess<D> {
     /// Wrap `child`, re-running it until it succeeds.
     pub fn new(child: impl BehaviorNode<D> + 'static) -> Self {
-        Self {
-            child: Box::new(child),
-        }
+        Self { child: Box::new(child) }
     }
 }
 

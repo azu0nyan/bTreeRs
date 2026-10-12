@@ -31,10 +31,7 @@ impl<D> Sequence<D> {
     /// Build a sequence from its children. Use the [`nodes!`](crate::nodes!)
     /// macro to box heterogeneous node types ergonomically.
     pub fn new(children: Vec<BoxNode<D>>) -> Self {
-        Self {
-            children,
-            current: 0,
-        }
+        Self { children, current: 0 }
     }
 
     fn reset(&mut self) {

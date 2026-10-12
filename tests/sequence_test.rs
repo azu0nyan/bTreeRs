@@ -1,16 +1,12 @@
 mod common;
 
 use btree::prelude::*;
-use common::{tagged, Ctx};
+use common::{Ctx, tagged};
 
 #[test]
 fn runs_in_order_and_stops_on_failure() {
     let mut ctx = Ctx::default();
-    let mut seq = Sequence::new(nodes![
-        tagged("a", Status::Success),
-        tagged("b", Status::Failure),
-        tagged("c", Status::Success),
-    ]);
+    let mut seq = Sequence::new(nodes![tagged("a", Status::Success), tagged("b", Status::Failure), tagged("c", Status::Success),]);
     assert_eq!(seq.tick(&mut ctx, None), Status::Failure);
     assert_eq!(ctx.log, vec!["a", "b"]); // "c" never runs
 }

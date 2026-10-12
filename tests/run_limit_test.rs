@@ -14,11 +14,7 @@ fn running_ticks_do_not_count() {
     let mut n = RunLimit::new(
         Action::new(move |_: &mut ()| {
             step += 1;
-            if step % 2 == 0 {
-                Status::Success
-            } else {
-                Status::Running
-            }
+            if step % 2 == 0 { Status::Success } else { Status::Running }
         }),
         1,
     );

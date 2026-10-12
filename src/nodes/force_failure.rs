@@ -11,9 +11,7 @@ pub struct ForceFailure<D> {
 impl<D> ForceFailure<D> {
     /// Wrap `child` so its finished result is always failure.
     pub fn new(child: impl BehaviorNode<D> + 'static) -> Self {
-        Self {
-            child: Box::new(child),
-        }
+        Self { child: Box::new(child) }
     }
 }
 

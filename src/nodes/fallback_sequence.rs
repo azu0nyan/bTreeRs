@@ -22,10 +22,7 @@ pub struct FallbackSequence<D> {
 impl<D> FallbackSequence<D> {
     /// Build a fallback (selector) from its children.
     pub fn new(children: Vec<BoxNode<D>>) -> Self {
-        Self {
-            children,
-            current: 0,
-        }
+        Self { children, current: 0 }
     }
 
     fn reset(&mut self) {

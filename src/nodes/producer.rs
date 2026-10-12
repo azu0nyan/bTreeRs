@@ -86,11 +86,7 @@ impl<D> BehaviorNode<D> for Producer<D> {
     }
 
     fn node_info(&self) -> String {
-        let state = if self.running_node.is_some() {
-            "Running"
-        } else {
-            "Halted"
-        };
+        let state = if self.running_node.is_some() { "Running" } else { "Halted" };
         match &self.label {
             Some(l) => format!("Producer : {l} : {state}"),
             None => format!("Producer : {state}"),

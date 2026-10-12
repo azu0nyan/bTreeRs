@@ -19,11 +19,7 @@ fn runs_until_every_child_is_done() {
         AlwaysSuccess,
         Action::new(move |_: &mut ()| {
             step += 1;
-            if step >= 2 {
-                Status::Success
-            } else {
-                Status::Running
-            }
+            if step >= 2 { Status::Success } else { Status::Running }
         }),
     ]);
     assert_eq!(p.tick(&mut (), None), Status::Running);

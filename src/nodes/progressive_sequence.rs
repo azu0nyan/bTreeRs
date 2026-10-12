@@ -22,10 +22,7 @@ pub struct ProgressiveSequence<D> {
 impl<D> ProgressiveSequence<D> {
     /// Build a progressive sequence from its children.
     pub fn new(children: Vec<BoxNode<D>>) -> Self {
-        Self {
-            children,
-            current: 0,
-        }
+        Self { children, current: 0 }
     }
 
     fn reset(&mut self) {

@@ -3,17 +3,14 @@
 mod common;
 
 use btree::prelude::*;
-use common::{tagged, Ctx};
+use common::{Ctx, tagged};
 
 #[test]
 fn builds_trace_tree() {
     let mut ctx = Ctx::default();
     let mut tree = Sequence::new(nodes![
         Predicate::labeled("ready", |_: &mut Ctx| true),
-        FallbackSequence::new(nodes![
-            tagged("a", Status::Failure),
-            tagged("b", Status::Running),
-        ]),
+        FallbackSequence::new(nodes![tagged("a", Status::Failure), tagged("b", Status::Running),]),
     ]);
 
     let (status, trace) = tree.tick_traced(&mut ctx);
@@ -59,10 +56,7 @@ fn nests_to_full_depth() {
         Predicate::labeled("ready", |_: &mut Ctx| true),
         Invert::new(FallbackSequence::new(nodes![
             tagged("a", Status::Failure),
-            Sequence::new(nodes![
-                tagged("b", Status::Success),
-                tagged("c", Status::Running),
-            ]),
+            Sequence::new(nodes![tagged("b", Status::Success), tagged("c", Status::Running),]),
         ])),
     ]);
 
@@ -106,10 +100,7 @@ fn nests_to_full_depth() {
 
     // Display indents two spaces per level; the deepest leaf is 4 levels down.
     let rendered = trace.to_string();
-    assert!(
-        rendered.contains("        Action: c [Running]"),
-        "deepest leaf should be indented 8 spaces:\n{rendered}"
-    );
+    assert!(rendered.contains("        Action: c [Running]"), "deepest leaf should be indented 8 spaces:\n{rendered}");
 }
 
 #[test]

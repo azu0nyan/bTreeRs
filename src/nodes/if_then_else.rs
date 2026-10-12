@@ -1,6 +1,6 @@
 //! The [`IfThenElse`] conditional branch (latching).
 
-use super::{branch_word, Branch};
+use super::{Branch, branch_word};
 use crate::debug::{record, tick_child};
 use crate::{BehaviorNode, BoxNode, DebugNode, Status};
 
@@ -21,11 +21,7 @@ pub struct IfThenElse<D> {
 
 impl<D> IfThenElse<D> {
     /// Build an unlabeled latching if/then/else.
-    pub fn new(
-        predicate: impl FnMut(&mut D) -> bool + 'static,
-        then_node: impl BehaviorNode<D> + 'static,
-        else_node: impl BehaviorNode<D> + 'static,
-    ) -> Self {
+    pub fn new(predicate: impl FnMut(&mut D) -> bool + 'static, then_node: impl BehaviorNode<D> + 'static, else_node: impl BehaviorNode<D> + 'static) -> Self {
         Self::make(predicate, then_node, else_node, None)
     }
 
@@ -39,12 +35,7 @@ impl<D> IfThenElse<D> {
         Self::make(predicate, then_node, else_node, Some(label.into()))
     }
 
-    fn make(
-        predicate: impl FnMut(&mut D) -> bool + 'static,
-        then_node: impl BehaviorNode<D> + 'static,
-        else_node: impl BehaviorNode<D> + 'static,
-        label: Option<String>,
-    ) -> Self {
+    fn make(predicate: impl FnMut(&mut D) -> bool + 'static, then_node: impl BehaviorNode<D> + 'static, else_node: impl BehaviorNode<D> + 'static, label: Option<String>) -> Self {
         Self {
             predicate: Box::new(predicate),
             then_node: Box::new(then_node),
@@ -95,10 +86,6 @@ impl<D> BehaviorNode<D> for IfThenElse<D> {
     }
 
     fn node_info(&self) -> String {
-        format!(
-            "IF {} branch {}",
-            self.label.as_deref().unwrap_or(""),
-            branch_word(self.running)
-        )
+        format!("IF {} branch {}", self.label.as_deref().unwrap_or(""), branch_word(self.running))
     }
 }
